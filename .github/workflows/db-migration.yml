@@ -1,0 +1,40 @@
+name: db-migration
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/seed.sql"
+      - "supabase/config.toml"
+      - ".github/workflows/db-migration.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/seed.sql"
+      - "supabase/config.toml"
+      - ".github/workflows/db-migration.yml"
+
+jobs:
+  validate:
+    name: Validate migrations on local Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase stack
+        run: supabase start --exclude=studio,inbucket,realtime,edge-runtime,imgproxy,pgadmin-schema-diff,migra,vector,logflare
+
+      - name: Reset DB (apply migrations + seed)
+        run: supabase db reset
+
+      - name: Stop
+        if: always()
+        run: supabase stop --no-backup
