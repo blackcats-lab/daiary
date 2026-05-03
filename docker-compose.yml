@@ -1,0 +1,24 @@
+# Supabase はローカル開発用に独自 CLI（`supabase start`）を提供しており、
+# 内部で Docker Compose を呼び出す。本ファイルは補助用途（追加サービスや
+# CLI 未導入環境向けのフォールバック）。基本は `make supabase-start` を推奨。
+#
+# ここでは Postgres のみを単体起動できるサンプルを定義する。
+# Edge Functions / Studio / Auth / Storage を含めた完全構成は Supabase CLI を使うこと。
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: daiary_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "54322:5432"
+    volumes:
+      - daiary_pg_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
+
+volumes:
+  daiary_pg_data:
