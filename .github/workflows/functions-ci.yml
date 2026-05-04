@@ -36,4 +36,10 @@ jobs:
         run: deno lint
 
       - name: Test
-        run: deno test --allow-all
+        # テストファイルが無い場合はスキップ。Phase 1 以降でテストを追加すれば自動で走る。
+        run: |
+          if find . -type f \( -name '*_test.ts' -o -name '*.test.ts' \) | grep -q .; then
+            deno test --allow-all
+          else
+            echo "No Deno test files found yet — skipping."
+          fi
