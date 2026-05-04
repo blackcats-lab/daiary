@@ -148,9 +148,21 @@ docs: setup手順にECRレート制限の回避策を追記
 - **Deno lint の罠**: `_` プレフィックス引数（`_service` 等）は既に未使用許容。`// deno-lint-ignore no-unused-vars` を付けると `ban-unused-ignore` エラーになる。
 - **Async without await**: Deno lint は `async function` の本体に `await` が無いとエラー。雛形（501 を返すだけ）では `async` を付けない。
 
+### Flutter / Riverpod / Repository 流儀（Sprint 1 で確立）
+
+- **コード生成**: `freezed 3.x` + `riverpod_generator 4.x` + `json_serializable` を使う。CI で `dart run build_runner build --delete-conflicting-outputs` が format/analyze/test の前に走る。生成ファイル（`*.g.dart` / `*.freezed.dart`）は `.gitignore` 対象でコミットしない。
+- **freezed 3.x の文法**: `@freezed abstract class Xxx with _$Xxx { const factory Xxx(...) = _Xxx; }` の形（`abstract` 必須）。
+- **riverpod_generator の命名**: `class AuthNotifier extends _$AuthNotifier` で定義した Notifier は **`authProvider`** という変数名で公開される（`Notifier` サフィックスを除く）。`AuthNotifier` 全体を識別子に使う書き方（`authNotifierProvider`）にはならないので注意。
+- **Repository pattern**: `data/datasources` → `data/repositories` → `domain/repositories`（abstract）→ `presentation/providers` の 4 層。Domain 層が SDK 型を直接扱わず、`AuthFailure` 等の共通例外で吸収する。
+- **`AuthUser` 名前衝突**: `supabase_flutter` も `AuthUser` を export する。自前の Domain entity を import する側で `import 'package:supabase_flutter/supabase_flutter.dart' hide AuthUser;` する。
+- **GoRouter の認証 redirect**: `refreshListenable` に Riverpod 状態を ChangeNotifier 経由で渡し、`redirect` で auth 状態を見て `/login` / `/home` に振り分ける。`/splash` を中間状態として用意し、初期ロード中はそこに留める。
+- **analysis_options.yaml**: `*.g.dart` / `*.freezed.dart` を analyze の `exclude` に**入れてはいけない**。生成された Provider クラス・mixin が「未定義」と判定される。
+- **custom_lint / riverpod_lint**: 一時的に除外中（`analyzer 7.6` との互換問題）。Phase 1 後半で再評価する。
+
 ### CI ハマりどころ
 
 - `mobile-ci` は `flutter analyze` の前に **`cp .env.example .env` が必要**。`pubspec.yaml` の `assets:` で `.env` を宣言しているため、ファイルが無いと `asset_does_not_exist` warning で fail する。
+- `mobile-ci` で `dart run build_runner build --delete-conflicting-outputs` を pub get の後に実行する。生成ファイルが無いと analyzer が大量に Undefined エラーを吐く。
 - `functions-ci` の `deno test` はテストファイル 0 件だと exit 1 になる。Phase 0 では `find` でファイル有無を確認してスキップする条件分岐を入れている（Phase 1 でテストを書き始めれば自動的に走る）。
 - パスフィルタ動作: `mobile/**` / `supabase/functions/**` / `supabase/migrations/**` のいずれかに変更がある場合のみ該当ワークフローが走る。docs だけの変更では CI は走らない。
 
@@ -174,7 +186,7 @@ docs: setup手順にECRレート制限の回避策を追記
 | Phase | 状態 | 期間 |
 |---|---|---|
 | **Phase 0: 設計・準備** | ✅ 完了（Gemini PoC 含む） | Sprint 0 / 2 週間 |
-| Phase 1 Sprint 1: 認証 + カメラ基盤 | ⏳ 次に着手 | Week 3-4 |
+| Phase 1 Sprint 1: 認証 + カメラ基盤 | 🚧 進行中（photos CRUD・認証 + ログイン画面 完了。次: カメラ撮影 + Storage） | Week 3-4 |
 | Phase 1 Sprint 2: AI 生成機能 | 未着手 | Week 5-6 |
 | Phase 1 Sprint 3: アルバム + 写真管理 | 未着手 | Week 7-8 |
 | Phase 2: 課金・広告 | 未着手 | Week 9-10 |
@@ -197,6 +209,7 @@ supabase functions serve --env-file supabase/functions/.env.local
 # Flutter 開発
 cd mobile
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # 生成必要なら
 flutter analyze
 flutter test
 flutter run
