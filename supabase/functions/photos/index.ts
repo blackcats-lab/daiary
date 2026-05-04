@@ -193,7 +193,11 @@ async function updatePhoto(
   if (Array.isArray(body.ai_tags)) updates.ai_tags = body.ai_tags;
 
   if (Object.keys(updates).length === 0) {
-    return jsonError(400, "INVALID_REQUEST", "更新可能フィールド (is_favorite, ai_tags) が指定されていません");
+    return jsonError(
+      400,
+      "INVALID_REQUEST",
+      "更新可能フィールド (is_favorite, ai_tags) が指定されていません",
+    );
   }
 
   const { data, error } = await service
