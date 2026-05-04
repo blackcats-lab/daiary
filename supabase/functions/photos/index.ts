@@ -8,6 +8,7 @@
 // DELETE /functions/v1/photos/:id      論理削除
 //
 // Phase 1 で本実装。現状は認証 + ルーティング骨格のみ。
+// 各 placeholder は同期的に 501 を返す。本実装時に async + await を付ける。
 // ============================================================================
 
 import { authenticate, createServiceClient, unauthorized } from "../_shared/auth.ts";
@@ -25,50 +26,43 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   switch (req.method) {
     case "GET":
-      return photoId
-        ? await getPhoto(service, user.userId, photoId)
-        : await listPhotos(service, user.userId);
+      return photoId ? getPhoto(service, user.userId, photoId) : listPhotos(service, user.userId);
     case "POST":
-      return await createPhoto(service, user.userId, await req.json());
+      return createPhoto(service, user.userId, await req.json());
     case "PATCH":
       if (!photoId) return jsonError(400, "ID_REQUIRED", "photo id が必要です");
-      return await updatePhoto(service, user.userId, photoId, await req.json());
+      return updatePhoto(service, user.userId, photoId, await req.json());
     case "DELETE":
       if (!photoId) return jsonError(400, "ID_REQUIRED", "photo id が必要です");
-      return await deletePhoto(service, user.userId, photoId);
+      return deletePhoto(service, user.userId, photoId);
     default:
       return jsonError(405, "METHOD_NOT_ALLOWED", `${req.method} は未対応です`);
   }
 });
 
-// TODO: Phase 1 で実装
-// deno-lint-ignore no-unused-vars
-async function listPhotos(_service: unknown, _userId: string): Promise<Response> {
+// TODO: Phase 1 で本実装する際は async + await + DB アクセスを追加すること
+function listPhotos(_service: unknown, _userId: string): Response {
   return jsonError(501, "NOT_IMPLEMENTED", "Phase 1 で実装予定");
 }
 
-// deno-lint-ignore no-unused-vars
-async function getPhoto(_service: unknown, _userId: string, _id: string): Promise<Response> {
+function getPhoto(_service: unknown, _userId: string, _id: string): Response {
   return jsonError(501, "NOT_IMPLEMENTED", "Phase 1 で実装予定");
 }
 
-// deno-lint-ignore no-unused-vars
-async function createPhoto(_service: unknown, _userId: string, _body: unknown): Promise<Response> {
+function createPhoto(_service: unknown, _userId: string, _body: unknown): Response {
   return jsonError(501, "NOT_IMPLEMENTED", "Phase 1 で実装予定");
 }
 
-// deno-lint-ignore no-unused-vars
-async function updatePhoto(
+function updatePhoto(
   _service: unknown,
   _userId: string,
   _id: string,
   _body: unknown,
-): Promise<Response> {
+): Response {
   return jsonError(501, "NOT_IMPLEMENTED", "Phase 1 で実装予定");
 }
 
-// deno-lint-ignore no-unused-vars
-async function deletePhoto(_service: unknown, _userId: string, _id: string): Promise<Response> {
+function deletePhoto(_service: unknown, _userId: string, _id: string): Response {
   return jsonError(501, "NOT_IMPLEMENTED", "Phase 1 で実装予定");
 }
 
