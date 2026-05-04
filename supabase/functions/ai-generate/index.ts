@@ -7,12 +7,7 @@
 // ============================================================================
 
 import { authenticate, createServiceClient, unauthorized } from "../_shared/auth.ts";
-import {
-  incrementUsage,
-  loadUsageContext,
-  logUsage,
-  rateLimited,
-} from "../_shared/usage.ts";
+import { incrementUsage, loadUsageContext, logUsage, rateLimited } from "../_shared/usage.ts";
 import { createAIService } from "../_shared/ai-service.ts";
 
 /** リクエストサイズ上限（2MB） */

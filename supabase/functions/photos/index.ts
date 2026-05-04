@@ -19,9 +19,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
   // 末尾のパス: /functions/v1/photos[/<id>]
   const segments = url.pathname.split("/").filter(Boolean);
-  const photoId = segments[segments.length - 1] !== "photos"
-    ? segments[segments.length - 1]
-    : null;
+  const photoId = segments[segments.length - 1] !== "photos" ? segments[segments.length - 1] : null;
 
   const service = createServiceClient();
 

@@ -93,7 +93,8 @@ interface GeminiResponse {
 }
 
 function estimateGeminiCost(model: string, inputTokens: number, outputTokens: number): number {
-  const rate = GEMINI_COST[model as keyof typeof GEMINI_COST] ?? GEMINI_COST["gemini-2.5-flash-lite"];
+  const rate = GEMINI_COST[model as keyof typeof GEMINI_COST] ??
+    GEMINI_COST["gemini-2.5-flash-lite"];
   return (inputTokens / 1_000_000) * rate.input + (outputTokens / 1_000_000) * rate.output;
 }
 

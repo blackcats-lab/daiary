@@ -18,9 +18,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const url = new URL(req.url);
   const segments = url.pathname.split("/").filter(Boolean);
-  const albumId = segments[segments.length - 1] !== "albums"
-    ? segments[segments.length - 1]
-    : null;
+  const albumId = segments[segments.length - 1] !== "albums" ? segments[segments.length - 1] : null;
 
   const service = createServiceClient();
 

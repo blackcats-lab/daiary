@@ -58,7 +58,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const isCancelEvent = ["CANCELLATION", "EXPIRATION", "BILLING_ISSUE"].includes(event.type);
 
   if (isActiveEvent) {
-    const expiresAt = event.expiration_at_ms ? new Date(event.expiration_at_ms).toISOString() : null;
+    const expiresAt = event.expiration_at_ms
+      ? new Date(event.expiration_at_ms).toISOString()
+      : null;
     const { error } = await service.from("subscriptions").upsert({
       user_id: event.app_user_id,
       plan: "premium",
