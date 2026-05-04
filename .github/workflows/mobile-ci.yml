@@ -36,6 +36,11 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
+      - name: Prepare .env
+        # pubspec.yaml の assets: に .env を宣言しているため、analyze 前に
+        # 実体ファイルが必要（無いと asset_does_not_exist warning で fail）
+        run: cp .env.example .env
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib test
 
@@ -43,12 +48,7 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Test
-        env:
-          # widget_test は .env を読まないが、dotenv の挙動上ファイルが必要なケースに備える
-          ENV: dev
-        run: |
-          cp .env.example .env
-          flutter test --coverage
+        run: flutter test --coverage
 
       - name: Upload coverage
         if: always()
