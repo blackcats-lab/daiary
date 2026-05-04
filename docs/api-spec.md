@@ -79,13 +79,57 @@
 
 ### GET /photos
 
-自分の写真一覧（未削除）を新しい順に返す。クエリ: `?limit=50&before=<created_at>`
+自分の写真一覧（未削除）を新しい順に返す。
+
+クエリパラメータ:
+
+| name     | type    | default | 説明                                                            |
+| -------- | ------- | ------- | --------------------------------------------------------------- |
+| `limit`  | int     | 50      | 取得件数。最大 100、不正値や 0 以下は 50 にフォールバック       |
+| `before` | ISO8601 | -       | この `created_at` より古いものだけ取得（ページング用）          |
+
+レスポンス 200:
+
+```json
+{
+  "photos": [
+    {
+      "id": "uuid",
+      "storage_path": "user_uuid/2026/05/abc.jpg",
+      "thumbnail_path": "user_uuid/2026/05/abc_thumb.jpg",
+      "original_filename": "IMG_1234.HEIC",
+      "file_size": 1543210,
+      "width": 4032,
+      "height": 3024,
+      "exif_data": {},
+      "ai_tags": [],
+      "is_favorite": false,
+      "created_at": "2026-05-04T10:00:00.000Z"
+    }
+  ],
+  "next_before": "2026-05-04T10:00:00.000Z"
+}
+```
+
+`next_before` は次ページ取得用カーソル。返却件数が `limit` 未満なら `null`。
 
 ### GET /photos/:id
 
-写真 1 件の詳細（EXIF・AI タグ含む）を返す。
+写真 1 件の詳細を返す。
+
+レスポンス 200:
+
+```json
+{ "photo": { "id": "uuid", ...同上, "deleted_at": null } }
+```
+
+エラー: 400 INVALID_ID（UUID 形式不正）/ 404 NOT_FOUND
 
 ### POST /photos
+
+メタデータ作成。Storage 本体のアップロードは Flutter 側で別経路（Storage SDK）で実施し、生成された `storage_path` を渡す前提。
+
+リクエスト:
 
 ```json
 {
@@ -95,20 +139,47 @@
   "file_size": 1543210,
   "width": 4032,
   "height": 3024,
-  "exif_data": { },
+  "exif_data": {},
   "ai_tags": []
 }
 ```
 
+| field          | required | 備考                                  |
+| -------------- | -------- | ------------------------------------- |
+| `storage_path` | ✓        | 唯一の必須フィールド                  |
+| 他             | -        | 省略時は null / 空 (`{}` or `[]`)     |
+
+レスポンス 201:
+
+```json
+{ "photo": { "id": "新規UUID", ... } }
+```
+
 ### PATCH /photos/:id
 
-更新可能フィールド: `is_favorite`, `ai_tags`
+更新可能フィールド: `is_favorite` (boolean), `ai_tags` (array)。
+他のフィールドは送信されても無視される。
+両方とも未指定の場合 400 INVALID_REQUEST。
+
+リクエスト例:
+
+```json
+{ "is_favorite": true }
+```
+
+レスポンス 200: 更新後の `{ "photo": {...} }`。
 
 ### DELETE /photos/:id
 
-論理削除（`deleted_at = now()` を set）。
+論理削除（`deleted_at = now()` を set）。物理削除はバッチで 30 日後に実施予定。
 
-> Phase 0 時点では雛形のみ。実装は Phase 1（Sprint 1）。
+レスポンス 200:
+
+```json
+{ "id": "uuid", "deleted": true }
+```
+
+エラー: 404 NOT_FOUND（既に削除済み or 自分の写真でない）
 
 ## 3. albums
 
