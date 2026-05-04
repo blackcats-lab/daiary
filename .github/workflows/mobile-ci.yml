@@ -1,0 +1,59 @@
+name: mobile-ci
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci.yml"
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate native folders (android/ios)
+        run: flutter create .
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Prepare .env
+        # pubspec.yaml の assets: に .env を宣言しているため、analyze 前に
+        # 実体ファイルが必要（無いと asset_does_not_exist warning で fail）
+        run: cp .env.example .env
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test
+        run: flutter test --coverage
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-coverage
+          path: mobile/coverage
+          if-no-files-found: ignore
