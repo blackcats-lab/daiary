@@ -29,7 +29,9 @@ dependencies:
   supabase_flutter: ^2.5.6
 
   # ===== Monetization =====
-  google_mobile_ads: ^5.1.0
+  # google_mobile_ads は Phase 2 で再導入する。
+  # 現状入れると AdMob App ID 未設定で起動時に native クラッシュするため除外。
+  # 再導入時は AndroidManifest.xml と Info.plist に App ID を追加すること。
   purchases_flutter: ^9.4.0
 
   # ===== Storage / Models =====
