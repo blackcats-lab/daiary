@@ -11,10 +11,24 @@ Diary の中に「AI」を埋め込んだ造語で、ロゴでは d**AI**ary と
 
 ### ドキュメント
 
+#### 計画・要件
+
 | ファイル | 内容 | バージョン |
 |---|---|---|
 | `dAIary_requirements.md` | 要件定義書 | v2.0 |
 | `dAIary_implementation_plan.md` | 実装計画書 | v2.0 |
+
+#### 実装ガイド（Phase 0 で追加）
+
+| ファイル | 内容 |
+|---|---|
+| `setup.md` | ローカル開発環境セットアップ手順 |
+| `api-spec.md` | Edge Functions API 仕様 |
+| `architecture.md` | システム構成・データフロー・モジュール分割 |
+| `er-diagram.md` | DB スキーマの Mermaid ER 図 |
+| `prompt-design.md` | AI 生成のプロンプト・JSON Schema 設計 |
+| `phase0-external-tasks.md` | Phase 0 外部タスクのチェックリスト |
+| `gemini-poc-result.md` | Gemini API PoC 結果（実コスト・所要時間） |
 
 ### デザイン
 
