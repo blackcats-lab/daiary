@@ -41,7 +41,13 @@ jobs:
         # 実体ファイルが必要（無いと asset_does_not_exist warning で fail）
         run: cp .env.example .env
 
+      - name: Code generation
+        # freezed / riverpod_generator / json_serializable の生成ファイルは .gitignore 対象
+        # CI では毎回生成する
+        run: dart run build_runner build --delete-conflicting-outputs
+
       - name: Verify formatting
+        # 生成ファイルは format 検証から除外（生成ツール側のスタイルに従う）
         run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze

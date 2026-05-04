@@ -1,24 +1,56 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/ai_generate/presentation/screens/ai_generate_screen.dart';
 import '../features/album/presentation/screens/album_list_screen.dart';
+import '../features/auth/presentation/providers/auth_notifier.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
+import '../features/auth/presentation/screens/signup_screen.dart';
+import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/camera/presentation/screens/camera_screen.dart';
-import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/photo/presentation/screens/home_screen.dart';
 import '../features/photo/presentation/screens/photo_detail_screen.dart';
+import '../features/settings/presentation/screens/settings_screen.dart';
+
+/// 認証不要なパス（ログイン前でもアクセス可）
+const _publicPaths = {'/login', '/signup', '/splash'};
 
 /// アプリ全体のルーティング定義。
 /// 画面構成出典: docs/dAIary_screen_layouts.jsx
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
+    refreshListenable: _AuthChangeNotifier(ref),
+    redirect: (context, state) {
+      final auth = ref.read(authProvider);
+      final loc = state.matchedLocation;
+
+      // 初期ロード中: スプラッシュにとどめる
+      if (auth.isLoading && !auth.hasValue) {
+        return loc == '/splash' ? null : '/splash';
+      }
+
+      final isLoggedIn = auth.value != null;
+      final isPublic = _publicPaths.contains(loc);
+
+      if (!isLoggedIn && !isPublic) return '/login';
+      if (isLoggedIn && (isPublic || loc == '/splash')) return '/home';
+      return null;
+    },
     routes: [
+      GoRoute(
+          path: '/splash',
+          name: 'splash',
+          builder: (_, __) => const SplashScreen()),
       GoRoute(
           path: '/login',
           name: 'login',
           builder: (_, __) => const LoginScreen()),
+      GoRoute(
+          path: '/signup',
+          name: 'signup',
+          builder: (_, __) => const SignupScreen()),
       GoRoute(
           path: '/home', name: 'home', builder: (_, __) => const HomeScreen()),
       GoRoute(
@@ -47,3 +79,19 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// authProvider の変化を GoRouter に通知する Listenable アダプタ。
+class _AuthChangeNotifier extends ChangeNotifier {
+  _AuthChangeNotifier(this._ref) {
+    _sub = _ref.listen(authProvider, (_, __) => notifyListeners());
+  }
+
+  final Ref _ref;
+  late final ProviderSubscription _sub;
+
+  @override
+  void dispose() {
+    _sub.close();
+    super.dispose();
+  }
+}

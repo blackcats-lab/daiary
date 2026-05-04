@@ -2,8 +2,6 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   exclude:
-    - "**/*.g.dart"
-    - "**/*.freezed.dart"
     - "build/**"
   language:
     strict-casts: true
@@ -11,9 +9,8 @@ analyzer:
     strict-raw-types: true
   errors:
     invalid_annotation_target: ignore
-
-  plugins:
-    - custom_lint
+  # plugins: custom_lint は dev_dependencies から外したので一時的に無効化。
+  # Phase 1 後半で再導入する。
 
 linter:
   rules:

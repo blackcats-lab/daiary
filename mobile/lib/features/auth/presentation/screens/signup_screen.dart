@@ -9,14 +9,14 @@ import '../widgets/auth_text_field.dart';
 import '../widgets/auth_validators.dart';
 import '../widgets/daiary_logo.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class SignupScreen extends ConsumerStatefulWidget {
+  const SignupScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _SignupScreenState extends ConsumerState<SignupScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscure = true;
@@ -30,7 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _onLogin() async {
+  Future<void> _onSignup() async {
     setState(() => _errorMessage = null);
     final emailError = AuthValidators.email(_emailCtrl.text);
     final passwordError = AuthValidators.password(_passwordCtrl.text);
@@ -40,11 +40,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     setState(() => _submitting = true);
     try {
-      await ref.read(authProvider.notifier).signIn(
+      await ref.read(authProvider.notifier).signUp(
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
-      // 成功時のナビゲーションは router の redirect が処理する
     } on AuthFailure catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.message);
@@ -83,10 +82,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 12),
                   AuthTextField(
                     controller: _passwordCtrl,
-                    hintText: 'パスワード',
+                    hintText: 'パスワード（6 文字以上）',
                     icon: Icons.lock_outline,
                     obscureText: _obscure,
-                    autofillHints: const [AutofillHints.password],
+                    autofillHints: const [AutofillHints.newPassword],
                     suffix: GestureDetector(
                       onTap: () => setState(() => _obscure = !_obscure),
                       child: Icon(
@@ -109,7 +108,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: _submitting ? null : _onLogin,
+                      onPressed: _submitting ? null : _onSignup,
                       child: _submitting
                           ? const SizedBox(
                               width: 16,
@@ -119,26 +118,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text('ログイン'),
+                          : const Text('新規登録'),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const _OrDivider(),
-                  const SizedBox(height: 12),
-                  const _SocialLoginRow(),
-                  const SizedBox(height: 16),
                   GestureDetector(
-                    onTap: () => context.go('/signup'),
+                    onTap: () => context.go('/login'),
                     child: RichText(
                       text: const TextSpan(
                         children: [
                           TextSpan(
-                            text: 'アカウントをお持ちでない方は ',
+                            text: 'すでにアカウントをお持ちの方は ',
                             style: TextStyle(
                                 fontSize: 11, color: Color(0xFF9A9590)),
                           ),
                           TextSpan(
-                            text: '新規登録',
+                            text: 'ログイン',
                             style: TextStyle(
                               fontSize: 11,
                               color: DaiaryColors.brandGold,
@@ -153,98 +148,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(
-      children: [
-        Expanded(child: Divider(color: Color(0xFFDDD8D2), height: 1)),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text('または',
-              style: TextStyle(fontSize: 9, color: Color(0xFFB0AAA4))),
-        ),
-        Expanded(child: Divider(color: Color(0xFFDDD8D2), height: 1)),
-      ],
-    );
-  }
-}
-
-class _SocialLoginRow extends StatelessWidget {
-  const _SocialLoginRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _SocialButton(
-            label: 'Google',
-            background: Colors.white,
-            foreground: DaiaryColors.deepBrown,
-            border: const Color(0xFFE8E5E0),
-            onTap: () => _showComingSoon(context),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _SocialButton(
-            label: 'Apple',
-            background: const Color(0xFF1A1A1A),
-            foreground: Colors.white,
-            onTap: () => _showComingSoon(context),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('OAuth ログインは Phase 1 後半で対応予定')),
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({
-    required this.label,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
-    this.border,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-  final Color? border;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(12),
-          border: border != null ? Border.all(color: border!) : null,
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-              fontSize: 12, color: foreground, fontWeight: FontWeight.w500),
         ),
       ),
     );
