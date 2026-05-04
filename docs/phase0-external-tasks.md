@@ -24,14 +24,14 @@ Phase 1 開発開始前に消化しておくこと。
 
 ## 3. Gemini API（PoC・本番）
 
-- [ ] [Google AI Studio](https://aistudio.google.com/) で API キー取得
-- [ ] `supabase/.env.local` の `GEMINI_API_KEY` に投入してローカル `ai-generate` を叩く
-  - サンプル写真 → `taskType: "hashtag"` で 10 個取得できるか
-  - サンプル写真 → `taskType: "caption"` で 80〜140 字の caption が返るか
-  - `usage_logs` に `input_tokens` / `output_tokens` / `cost_usd` が記録されるか
-- [ ] 1 リクエストあたりのコストが想定（約 0.032 円）に収まるか確認
-- [ ] PoC 結果を `docs/` 配下に PoC レポートとして残す（任意）
-- [ ] 本番 Supabase Secrets に `GEMINI_API_KEY` を投入
+- [x] [Google AI Studio](https://aistudio.google.com/) で API キー取得
+- [x] `supabase/functions/.env.local` の `GEMINI_API_KEY` に投入してローカル `ai-generate` を叩く
+  - サンプル写真 → `taskType: "hashtag"` で 10 個取得できるか → ✅ 8 個取得（指定数で動作）
+  - サンプル写真 → `taskType: "caption"` で 80〜140 字の caption が返るか → ✅ caption + altText 取得
+  - `usage_logs` に `input_tokens` / `output_tokens` / `cost_usd` が記録されるか → ✅
+- [x] 1 リクエストあたりのコストが想定（約 0.032 円）に収まるか確認 → ✅ 実測 0.008〜0.014 円（想定より安い）
+- [x] PoC 結果を `docs/` 配下に PoC レポートとして残す → [gemini-poc-result.md](gemini-poc-result.md)
+- [ ] 本番 Supabase Secrets に `GEMINI_API_KEY` を投入（§2 と合わせて実施）
 
 ## 4. RevenueCat
 

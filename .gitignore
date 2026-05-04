@@ -58,6 +58,7 @@ supabase/.branches/
 supabase/.temp/
 supabase/.env
 supabase/.env.local
+supabase/snippets/        # Studio の SQL ノート（ローカル限定）
 
 # ===== Deno (Edge Functions) =====
 supabase/functions/**/node_modules/

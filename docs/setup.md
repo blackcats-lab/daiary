@@ -65,6 +65,15 @@ cp supabase/functions/.env.example supabase/functions/.env.local
 supabase status
 ```
 
+> **Supabase CLI v2 系の名称変更**: `supabase status` の出力で従来の `anon key` / `service_role key` は
+> それぞれ **`Publishable`** / **`Secret`** に名称変更されている（`sb_publishable_...` / `sb_secret_...` 形式）。
+> 値はそのまま `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` に投入してよい。
+>
+> **CLI による自動注入**: Edge Functions ランタイムは起動時に `SUPABASE_URL` / `SUPABASE_ANON_KEY` /
+> `SUPABASE_SERVICE_ROLE_KEY` を自動セットする（`.env.local` の同名変数は無視され
+> "Env name cannot start with SUPABASE_, skipping" と表示される）。
+> ファイルに書いておいても害は無いが、必須なのは `GEMINI_API_KEY` 等のアプリ固有変数のみ。
+
 ## 4. Supabase Local 起動
 
 ```bash
