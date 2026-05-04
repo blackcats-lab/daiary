@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../services/supabase_service.dart';
@@ -16,39 +18,45 @@ AuthRepository authRepository(Ref ref) {
   return AuthRepositoryImpl(dataSource);
 }
 
-/// 認証状態を保持する AsyncNotifier。
+/// 認証状態を保持する Notifier。
 ///
-/// build() で現在のセッションを返し、watchAuthState() で SDK の変化を購読する。
-/// signIn / signUp / signOut の各メソッドはオプティミスティックではなく、
-/// 完了後に SDK の onAuthStateChange が build() の値を更新する想定。
+/// build() で SDK の `currentUser` を**即時**返す（loading にしない）。
+/// 一度確定した状態は `onAuthStateChange` Stream を購読して `state` で更新する。
+/// 旧実装の `Stream<AuthUser?>` build は、保存セッションが無いケースで
+/// `INITIAL_SESSION` イベントが emit されず loading のままになる SDK 挙動に
+/// 引っかかっていたため、本実装に置き換えた。
 @Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
+  StreamSubscription<AuthUser?>? _sub;
+
   @override
-  Stream<AuthUser?> build() {
+  AuthUser? build() {
     final repo = ref.watch(authRepositoryProvider);
-    return repo.watchAuthState();
+
+    _sub?.cancel();
+    _sub = repo.watchAuthState().listen((user) {
+      state = user;
+    });
+    ref.onDispose(() => _sub?.cancel());
+
+    return repo.currentUser;
   }
 
   Future<void> signUp({required String email, required String password}) async {
     final repo = ref.read(authRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-        () async => repo.signUp(email: email, password: password));
+    final user = await repo.signUp(email: email, password: password);
+    state = user;
   }
 
   Future<void> signIn({required String email, required String password}) async {
     final repo = ref.read(authRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(
-        () async => repo.signIn(email: email, password: password));
+    final user = await repo.signIn(email: email, password: password);
+    state = user;
   }
 
   Future<void> signOut() async {
     final repo = ref.read(authRepositoryProvider);
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() async {
-      await repo.signOut();
-      return null;
-    });
+    await repo.signOut();
+    state = null;
   }
 }
