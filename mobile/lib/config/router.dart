@@ -15,21 +15,35 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     routes: [
-      GoRoute(path: '/login', name: 'login', builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/home', name: 'home', builder: (_, __) => const HomeScreen()),
-      GoRoute(path: '/camera', name: 'camera', builder: (_, __) => const CameraScreen()),
+      GoRoute(
+          path: '/login',
+          name: 'login',
+          builder: (_, __) => const LoginScreen()),
+      GoRoute(
+          path: '/home', name: 'home', builder: (_, __) => const HomeScreen()),
+      GoRoute(
+          path: '/camera',
+          name: 'camera',
+          builder: (_, __) => const CameraScreen()),
       GoRoute(
         path: '/photo/:id',
         name: 'photo-detail',
-        builder: (_, state) => PhotoDetailScreen(photoId: state.pathParameters['id']!),
+        builder: (_, state) =>
+            PhotoDetailScreen(photoId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/ai-generate',
         name: 'ai-generate',
         builder: (_, __) => const AiGenerateScreen(),
       ),
-      GoRoute(path: '/albums', name: 'albums', builder: (_, __) => const AlbumListScreen()),
-      GoRoute(path: '/settings', name: 'settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(
+          path: '/albums',
+          name: 'albums',
+          builder: (_, __) => const AlbumListScreen()),
+      GoRoute(
+          path: '/settings',
+          name: 'settings',
+          builder: (_, __) => const SettingsScreen()),
     ],
   );
 });

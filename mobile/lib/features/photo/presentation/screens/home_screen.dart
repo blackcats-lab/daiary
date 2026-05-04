@@ -24,10 +24,14 @@ class HomeScreen extends StatelessWidget {
           }
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.photo_library_outlined), label: '写真'),
-          NavigationDestination(icon: Icon(Icons.camera_alt_outlined), label: 'カメラ'),
-          NavigationDestination(icon: Icon(Icons.collections_outlined), label: 'アルバム'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), label: '設定'),
+          NavigationDestination(
+              icon: Icon(Icons.photo_library_outlined), label: '写真'),
+          NavigationDestination(
+              icon: Icon(Icons.camera_alt_outlined), label: 'カメラ'),
+          NavigationDestination(
+              icon: Icon(Icons.collections_outlined), label: 'アルバム'),
+          NavigationDestination(
+              icon: Icon(Icons.settings_outlined), label: '設定'),
         ],
       ),
     );

@@ -4,7 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:daiary/config/theme.dart';
 
 void main() {
-  testWidgets('DaiaryTheme.light builds without throwing', (WidgetTester tester) async {
+  testWidgets('DaiaryTheme.light builds without throwing',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: DaiaryTheme.light(),

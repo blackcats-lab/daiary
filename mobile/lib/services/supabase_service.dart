@@ -11,7 +11,8 @@ class SupabaseService {
 
   static String? get currentUserId => currentUser?.id;
 
-  static Stream<AuthState> get authStateChanges => client.auth.onAuthStateChange;
+  static Stream<AuthState> get authStateChanges =>
+      client.auth.onAuthStateChange;
 
   /// Edge Function を JWT 自動付与で呼び出す。
   static Future<FunctionResponse> invokeFunction(

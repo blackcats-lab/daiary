@@ -53,7 +53,8 @@ class DaiaryTheme {
         style: FilledButton.styleFrom(
           backgroundColor: DaiaryColors.brandGold,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
       ),
@@ -88,19 +89,27 @@ class DaiaryTheme {
     final serif = GoogleFonts.playfairDisplayTextTheme(base);
     final sans = GoogleFonts.notoSansJpTextTheme(base);
     return base.copyWith(
-      displayLarge: serif.displayLarge?.copyWith(color: onSurface, fontWeight: FontWeight.w700),
-      displayMedium: serif.displayMedium?.copyWith(color: onSurface, fontWeight: FontWeight.w700),
-      displaySmall: serif.displaySmall?.copyWith(color: onSurface, fontWeight: FontWeight.w700),
+      displayLarge: serif.displayLarge
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w700),
+      displayMedium: serif.displayMedium
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w700),
+      displaySmall: serif.displaySmall
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w700),
       headlineLarge: serif.headlineLarge?.copyWith(color: onSurface),
       headlineMedium: serif.headlineMedium?.copyWith(color: onSurface),
       headlineSmall: serif.headlineSmall?.copyWith(color: onSurface),
-      titleLarge: sans.titleLarge?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
-      titleMedium: sans.titleMedium?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
-      titleSmall: sans.titleSmall?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
+      titleLarge: sans.titleLarge
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
+      titleMedium: sans.titleMedium
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
+      titleSmall: sans.titleSmall
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
       bodyLarge: sans.bodyLarge?.copyWith(color: onSurface),
       bodyMedium: sans.bodyMedium?.copyWith(color: onSurface),
-      bodySmall: sans.bodySmall?.copyWith(color: onSurface.withValues(alpha: 0.7)),
-      labelLarge: sans.labelLarge?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
+      bodySmall:
+          sans.bodySmall?.copyWith(color: onSurface.withValues(alpha: 0.7)),
+      labelLarge: sans.labelLarge
+          ?.copyWith(color: onSurface, fontWeight: FontWeight.w500),
     );
   }
 }

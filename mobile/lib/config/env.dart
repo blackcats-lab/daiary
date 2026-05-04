@@ -9,7 +9,8 @@ class Env {
 
   static String get supabaseUrl => dotenv.maybeGet('SUPABASE_URL') ?? '';
 
-  static String get supabaseAnonKey => dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '';
+  static String get supabaseAnonKey =>
+      dotenv.maybeGet('SUPABASE_ANON_KEY') ?? '';
 
   static bool get isProduction => env == 'prod';
   static bool get isStaging => env == 'staging';
