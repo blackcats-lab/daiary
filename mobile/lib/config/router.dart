@@ -29,8 +29,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggedIn = user != null;
       final isPublic = _publicPaths.contains(loc);
 
+      // ===== DEBUG（バグ調査用、解決後削除） =====
+      debugPrint('[router] redirect loc=$loc isLoggedIn=$isLoggedIn');
+
       if (!isLoggedIn && !isPublic) return '/login';
       if (isLoggedIn && (isPublic || loc == '/splash')) return '/home';
+      if (!isLoggedIn && loc == '/splash') return '/login';
       return null;
     },
     routes: [
@@ -78,7 +82,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 /// authProvider の変化を GoRouter に通知する Listenable アダプタ。
 class _AuthChangeNotifier extends ChangeNotifier {
   _AuthChangeNotifier(this._ref) {
-    _sub = _ref.listen(authProvider, (_, __) => notifyListeners());
+    _sub = _ref.listen(authProvider, (prev, next) {
+      debugPrint('[router] authProvider changed: prev=$prev next=$next');
+      notifyListeners();
+    });
   }
 
   final Ref _ref;

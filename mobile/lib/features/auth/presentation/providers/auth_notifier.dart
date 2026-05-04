@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../services/supabase_service.dart';
@@ -32,14 +33,19 @@ class AuthNotifier extends _$AuthNotifier {
   @override
   AuthUser? build() {
     final repo = ref.watch(authRepositoryProvider);
+    final initial = repo.currentUser;
+
+    // ===== DEBUG（バグ調査用、解決後削除） =====
+    debugPrint('[AuthNotifier] build initial=$initial');
 
     _sub?.cancel();
     _sub = repo.watchAuthState().listen((user) {
+      debugPrint('[AuthNotifier] watchAuthState emit user=$user');
       state = user;
     });
     ref.onDispose(() => _sub?.cancel());
 
-    return repo.currentUser;
+    return initial;
   }
 
   Future<void> signUp({required String email, required String password}) async {
