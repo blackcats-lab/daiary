@@ -50,13 +50,16 @@ Phase 1 開発開始前に消化しておくこと。
 
 ## 6. GitHub リポジトリ運用
 
-- [ ] `develop` ブランチを作成
-- [ ] Branch protection rule:
-  - `main` / `develop` への直 push 禁止
-  - PR には CI（`mobile-ci` / `functions-ci` / `db-migration` のうち該当するもの）通過を必須化
-  - Required reviewers 1 名以上
+- [x] `develop` ブランチを作成
+- [x] Branch protection rule:
+  - `main` / `develop` で PR 必須
+  - Required status checks: `Analyze & Test`, `Lint & Test`, `Validate migrations on local Supabase`
+  - 必要に応じて Required reviewers を 1 名以上に
 - [ ] GitHub Issues / Projects でスプリントボード作成
 - [ ] Discord 連携 Webhook（任意）
+
+> Required status check の登録は「過去 7 日に走った check 名」をサジェストする UI のため、
+> 初回は PR を 1 つ作って CI を完走させてから登録する必要がある（dAIary では PR #1 で対応済み）。
 
 ## 7. ストア準備（Phase 3 で必要）
 

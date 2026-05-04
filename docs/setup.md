@@ -12,6 +12,22 @@
 | Make | - | タスクランナー |
 | Xcode / Android Studio | latest | iOS / Android ビルド |
 
+### Windows でのインストール例
+
+```powershell
+# Make
+winget install GnuWin32.Make
+# winget 経由は PATH に自動追加されないため、ユーザー環境変数 PATH に
+# C:\Program Files (x86)\GnuWin32\bin を手動追加する。
+
+# Supabase CLI（Scoop 推奨）
+scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+scoop install supabase
+# Scoop の shim パス（例: C:\Users\<name>\scoop\shims）も PATH に必要。
+```
+
+PowerShell を入れ直してから `make --version` / `supabase --version` で確認。
+
 ## 1. リポジトリ取得
 
 ```bash
@@ -58,6 +74,18 @@ make supabase-db-reset      # migrations 001-007 + seed.sql を流す
 
 Studio は <http://127.0.0.1:54323> で開ける。
 
+### `supabase start` が ECR レート制限で失敗する場合
+
+`public.ecr.aws` の匿名 pull レート上限に達すると `toomanyrequests: Rate exceeded` で停止する。
+Phase 0 で必須でない `mailpit` 等を除外して起動できる:
+
+```bash
+supabase start -x mailpit
+```
+
+DB / Auth / Storage / Edge Functions / Studio はこれで起動する。
+1 時間程度待てばレート制限がリセットされ通常起動も可能。
+
 ## 5. Edge Functions ローカル起動
 
 別ターミナルで:
@@ -100,6 +128,12 @@ make lint          # mobile-lint + functions-lint
 
 - `supabase/.env.local` または `supabase/functions/.env.local` に値を入れたか確認
 - `supabase functions serve` を `--env-file` 付きで再起動
+
+### Windows で `make` / `supabase` コマンドが見つからない
+
+- `Get-Command make` / `Get-Command supabase` で PATH を確認
+- 上記「前提 / Windows でのインストール例」のとおり PATH を追加してから PowerShell を開き直す
+- 一時的なら `$env:Path += ";C:\Program Files (x86)\GnuWin32\bin"` をセッションに追加
 
 ## 関連ドキュメント
 
