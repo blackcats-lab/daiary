@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/exceptions/ai_generate_failure.dart';
 import '../../../photo/domain/entities/uploaded_photo.dart';
+import '../../domain/entities/caption_options.dart';
 import '../providers/ai_generate_notifier.dart';
 import '../providers/ai_generate_state.dart';
 
@@ -31,23 +32,29 @@ class _AiGenerateScreenState extends ConsumerState<AiGenerateScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref
           .read(aiGenerateProvider.notifier)
-          .generate(widget.photo, widget.processedFile);
+          .generateHashtags(widget.photo, widget.processedFile);
     });
   }
 
-  Future<void> _copyTags(List<String> hashtags) async {
-    await Clipboard.setData(ClipboardData(text: hashtags.join(' ')));
+  Future<void> _copyText(String text, String snack) async {
+    await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('コピーしました')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(snack)));
   }
 
   void _goHome() => context.go('/home');
 
-  Future<void> _retry() => ref
+  Future<void> _retryHashtags() => ref
       .read(aiGenerateProvider.notifier)
-      .retry(widget.photo, widget.processedFile);
+      .retryHashtags(widget.photo, widget.processedFile);
+
+  Future<void> _generateCaption() => ref
+      .read(aiGenerateProvider.notifier)
+      .generateCaption(widget.photo, widget.processedFile);
+
+  Future<void> _retryCaption() => ref
+      .read(aiGenerateProvider.notifier)
+      .retryCaption(widget.photo, widget.processedFile);
 
   @override
   Widget build(BuildContext context) {
@@ -58,111 +65,62 @@ class _AiGenerateScreenState extends ConsumerState<AiGenerateScreen> {
         title: const Text('AI で言葉を添える'),
         automaticallyImplyLeading: false,
       ),
-      body: switch (state) {
-        AiGenerateIdle() ||
-        AiGenerateGenerating() =>
-          const _ProgressView(label: 'タグを生成中…'),
-        AiGenerateSaving() => const _ProgressView(label: '保存中…'),
-        AiGenerateSuccess(:final hashtags) => _SuccessView(
-            thumbnail: widget.processedFile,
-            hashtags: hashtags,
-            onCopy: () => _copyTags(hashtags),
-            onDone: _goHome,
-          ),
-        AiGenerateFailureState(:final failure, :final partialHashtags) =>
-          _FailureView(
-            failure: failure,
-            partialHashtags: partialHashtags,
-            thumbnail: widget.processedFile,
-            onRetry: _retry,
-            onSkip: _goHome,
-          ),
-      },
-    );
-  }
-}
-
-class _ProgressView extends StatelessWidget {
-  const _ProgressView({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(label),
-        ],
-      ),
-    );
-  }
-}
-
-class _SuccessView extends StatelessWidget {
-  const _SuccessView({
-    required this.thumbnail,
-    required this.hashtags,
-    required this.onCopy,
-    required this.onDone,
-  });
-
-  final File thumbnail;
-  final List<String> hashtags;
-  final VoidCallback onCopy;
-  final VoidCallback onDone;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  thumbnail,
-                  height: 160,
-                  width: 160,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              '生成されたハッシュタグ',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
             Expanded(
               child: SingleChildScrollView(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final tag in hashtags) Chip(label: Text(tag)),
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(
+                          widget.processedFile,
+                          height: 160,
+                          width: 160,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _HashtagSection(
+                      phase: state.hashtag,
+                      onCopy: (tags) => _copyText(tags.join(' '), 'コピーしました'),
+                      onRetry: _retryHashtags,
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(height: 1),
+                    const SizedBox(height: 16),
+                    _CaptionSection(
+                      phase: state.caption,
+                      style: state.selectedStyle,
+                      length: state.selectedLength,
+                      onStyleChanged: (s) =>
+                          ref.read(aiGenerateProvider.notifier).setStyle(s),
+                      onLengthChanged: (l) =>
+                          ref.read(aiGenerateProvider.notifier).setLength(l),
+                      onGenerate: _generateCaption,
+                      onRetry: _retryCaption,
+                      onCopy: (text) => _copyText(text, 'コピーしました'),
+                    ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: onCopy,
-              icon: const Icon(Icons.copy),
-              label: const Text('コピー'),
-            ),
-            const SizedBox(height: 8),
-            FilledButton(
-              onPressed: onDone,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('完了'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _goHome,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text('ホームに戻る'),
+                  ),
+                ),
               ),
             ),
           ],
@@ -172,20 +130,286 @@ class _SuccessView extends StatelessWidget {
   }
 }
 
-class _FailureView extends StatelessWidget {
-  const _FailureView({
-    required this.failure,
-    required this.partialHashtags,
-    required this.thumbnail,
+// ============================================================================
+// Hashtag section
+// ============================================================================
+
+class _HashtagSection extends StatelessWidget {
+  const _HashtagSection({
+    required this.phase,
+    required this.onCopy,
     required this.onRetry,
-    required this.onSkip,
+  });
+
+  final HashtagPhase phase;
+  final void Function(List<String> tags) onCopy;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'ハッシュタグ',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+            ),
+            if (phase is HashtagSuccess)
+              IconButton(
+                icon: const Icon(Icons.copy, size: 18),
+                tooltip: 'コピー',
+                onPressed: () => onCopy((phase as HashtagSuccess).hashtags),
+              ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        switch (phase) {
+          HashtagIdle() ||
+          HashtagGenerating() ||
+          HashtagSaving() =>
+            const _InlineProgress(label: 'タグを生成中…'),
+          HashtagSuccess(:final hashtags) => Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [for (final t in hashtags) Chip(label: Text(t))],
+            ),
+          HashtagFailure(:final failure, :final partialHashtags) =>
+            _FailureBlock(
+              failure: failure,
+              partialView: partialHashtags == null || partialHashtags.isEmpty
+                  ? null
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        for (final t in partialHashtags) Chip(label: Text(t)),
+                      ],
+                    ),
+              onRetry: onRetry,
+            ),
+        },
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// Caption section
+// ============================================================================
+
+class _CaptionSection extends StatelessWidget {
+  const _CaptionSection({
+    required this.phase,
+    required this.style,
+    required this.length,
+    required this.onStyleChanged,
+    required this.onLengthChanged,
+    required this.onGenerate,
+    required this.onRetry,
+    required this.onCopy,
+  });
+
+  final CaptionPhase phase;
+  final CaptionStyle style;
+  final CaptionLength length;
+  final ValueChanged<CaptionStyle> onStyleChanged;
+  final ValueChanged<CaptionLength> onLengthChanged;
+  final VoidCallback onGenerate;
+  final VoidCallback onRetry;
+  final void Function(String text) onCopy;
+
+  bool get _busy => phase is CaptionGenerating || phase is CaptionSaving;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'キャプション',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'スタイル',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 4),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<CaptionStyle>(
+            segments: [
+              for (final s in CaptionStyle.values)
+                ButtonSegment(value: s, label: Text(s.label)),
+            ],
+            selected: {style},
+            showSelectedIcon: false,
+            onSelectionChanged:
+                _busy ? null : (selection) => onStyleChanged(selection.first),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          '文章の長さ',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 4),
+        SegmentedButton<CaptionLength>(
+          segments: [
+            for (final l in CaptionLength.values)
+              ButtonSegment(value: l, label: Text(l.label)),
+          ],
+          selected: {length},
+          showSelectedIcon: false,
+          onSelectionChanged:
+              _busy ? null : (selection) => onLengthChanged(selection.first),
+        ),
+        const SizedBox(height: 16),
+        switch (phase) {
+          CaptionIdle() => Center(
+              child: FilledButton.icon(
+                onPressed: onGenerate,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('投稿文を生成'),
+              ),
+            ),
+          CaptionGenerating() => const _InlineProgress(label: '投稿文を生成中…'),
+          CaptionSaving() => const _InlineProgress(label: '保存中…'),
+          CaptionSuccess(:final caption) => _CaptionResultView(
+              caption: caption,
+              onCopy: () => onCopy(caption),
+              onRetry: onRetry,
+              busy: false,
+            ),
+          CaptionFailure(:final failure, :final partialCaption) =>
+            _FailureBlock(
+              failure: failure,
+              partialView: partialCaption == null || partialCaption.isEmpty
+                  ? null
+                  : _CaptionResultView(
+                      caption: partialCaption,
+                      onCopy: () => onCopy(partialCaption),
+                      onRetry: onRetry,
+                      busy: false,
+                      hint: '（生成済みですが保存はできていません）',
+                    ),
+              onRetry: onRetry,
+            ),
+        },
+        const SizedBox(height: 8),
+        const Text(
+          '※ 再生成のたびに本日の利用回数を 1 回消費します',
+          style: TextStyle(fontSize: 11, color: Colors.grey),
+        ),
+      ],
+    );
+  }
+}
+
+class _CaptionResultView extends StatelessWidget {
+  const _CaptionResultView({
+    required this.caption,
+    required this.onCopy,
+    required this.onRetry,
+    required this.busy,
+    this.hint,
+  });
+
+  final String caption;
+  final VoidCallback onCopy;
+  final VoidCallback onRetry;
+  final bool busy;
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            caption,
+            style: const TextStyle(fontSize: 14, height: 1.6),
+          ),
+        ),
+        if (hint != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            hint!,
+            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton.icon(
+              onPressed: busy ? null : onRetry,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('再生成'),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: busy ? null : onCopy,
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('コピー'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// Common helpers
+// ============================================================================
+
+class _InlineProgress extends StatelessWidget {
+  const _InlineProgress({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class _FailureBlock extends StatelessWidget {
+  const _FailureBlock({
+    required this.failure,
+    required this.partialView,
+    required this.onRetry,
   });
 
   final AiGenerateFailure failure;
-  final List<String>? partialHashtags;
-  final File thumbnail;
+  final Widget? partialView;
   final VoidCallback onRetry;
-  final VoidCallback onSkip;
 
   bool get _canRetry =>
       failure.code == 'network' || failure.code == 'service_failed';
@@ -201,74 +425,25 @@ class _FailureView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tags = partialHashtags;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  thumbnail,
-                  height: 120,
-                  width: 120,
-                  fit: BoxFit.cover,
-                ),
-              ),
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 18),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(_message, style: const TextStyle(fontSize: 13)),
             ),
-            const SizedBox(height: 24),
-            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
-            const SizedBox(height: 8),
-            Text(_message, textAlign: TextAlign.center),
-            if (tags != null && tags.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              const Text(
-                '（生成済みのタグ。保存はできていません）',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [for (final tag in tags) Chip(label: Text(tag))],
-                  ),
-                ),
-              ),
-            ] else
-              const Spacer(),
-            if (_canRetry) ...[
-              FilledButton(
-                onPressed: onRetry,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('リトライ'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: onSkip,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('スキップしてホームへ'),
-                ),
-              ),
-            ] else
-              FilledButton(
-                onPressed: onSkip,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('ホームへ'),
-                ),
-              ),
+            if (_canRetry)
+              TextButton(onPressed: onRetry, child: const Text('リトライ')),
           ],
         ),
-      ),
+        if (partialView != null) ...[
+          const SizedBox(height: 8),
+          partialView!,
+        ],
+      ],
     );
   }
 }
