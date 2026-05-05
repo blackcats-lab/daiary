@@ -6,7 +6,10 @@ import 'package:go_router/go_router.dart';
 
 import '../features/ai_generate/presentation/screens/ai_generate_screen.dart';
 import '../features/album/presentation/screens/album_create_screen.dart';
+import '../features/album/presentation/screens/album_detail_screen.dart';
+import '../features/album/presentation/screens/album_edit_screen.dart';
 import '../features/album/presentation/screens/album_list_screen.dart';
+import '../features/album/presentation/screens/album_photo_picker_screen.dart';
 import '../features/auth/presentation/providers/auth_notifier.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/signup_screen.dart';
@@ -99,6 +102,29 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'new',
             name: 'album-new',
             builder: (_, __) => const AlbumCreateScreen(),
+          ),
+          GoRoute(
+            path: ':id',
+            name: 'album-detail',
+            builder: (_, state) => AlbumDetailScreen(
+              albumId: state.pathParameters['id']!,
+            ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                name: 'album-edit',
+                builder: (_, state) => AlbumEditScreen(
+                  albumId: state.pathParameters['id']!,
+                ),
+              ),
+              GoRoute(
+                path: 'add-photos',
+                name: 'album-add-photos',
+                builder: (_, state) => AlbumPhotoPickerScreen(
+                  albumId: state.pathParameters['id']!,
+                ),
+              ),
+            ],
           ),
         ],
       ),
