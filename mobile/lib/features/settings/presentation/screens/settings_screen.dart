@@ -8,8 +8,8 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
-    final email = auth.value?.email;
+    final user = ref.watch(authProvider);
+    final email = user?.email;
 
     return Scaffold(
       appBar: AppBar(title: const Text('設定')),

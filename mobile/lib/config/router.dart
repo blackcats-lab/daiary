@@ -23,19 +23,16 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: _AuthChangeNotifier(ref),
     redirect: (context, state) {
-      final auth = ref.read(authProvider);
+      final user = ref.read(authProvider);
       final loc = state.matchedLocation;
 
-      // 初期ロード中: スプラッシュにとどめる
-      if (auth.isLoading && !auth.hasValue) {
-        return loc == '/splash' ? null : '/splash';
-      }
-
-      final isLoggedIn = auth.value != null;
+      final isLoggedIn = user != null;
       final isPublic = _publicPaths.contains(loc);
 
       if (!isLoggedIn && !isPublic) return '/login';
       if (isLoggedIn && (isPublic || loc == '/splash')) return '/home';
+      // /splash は _publicPaths に含まれるが、未ログインなら /login に進める
+      if (!isLoggedIn && loc == '/splash') return '/login';
       return null;
     },
     routes: [
