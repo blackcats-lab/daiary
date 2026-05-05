@@ -25,16 +25,14 @@ class CapturePreviewScreen extends ConsumerWidget {
 
     ref.listen<PhotoUploadState>(photoUploadProvider, (prev, next) {
       switch (next) {
-        case PhotoUploadSuccess():
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('アップロードしました')),
-          );
-          // 一覧を再取得してからホームへ。ホーム側 listen に依存しない
-          // ことで、reset() で state が idle に戻ったあとでも確実に
-          // 反映される。
+        case PhotoUploadSuccess(:final photo):
+          // 一覧をバックグラウンドで再取得してから AI 生成画面へ遷移。
           ref.read(photoListProvider.notifier).refresh();
           ref.read(photoUploadProvider.notifier).reset();
-          context.go('/home');
+          context.go(
+            '/ai-generate',
+            extra: (photo: photo, processedFile: image.processedFile),
+          );
         case PhotoUploadFailure(:final failure):
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(failure.message)),
