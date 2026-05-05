@@ -79,13 +79,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/ai-generate',
         name: 'ai-generate',
         builder: (_, state) {
-          final args = state.extra! as ({
+          final extra = state.extra;
+          // 詳細画面からの再生成入口（autoStart 制御を含む 3 フィールド）
+          if (extra is ({
+            UploadedPhoto photo,
+            File processedFile,
+            bool autoStart,
+          })) {
+            return AiGenerateScreen(
+              photo: extra.photo,
+              processedFile: extra.processedFile,
+              autoStart: extra.autoStart,
+            );
+          }
+          // 撮影フロー互換（2 フィールド record。autoStart=true 既定）
+          final legacy = extra! as ({
             UploadedPhoto photo,
             File processedFile,
           });
           return AiGenerateScreen(
-            photo: args.photo,
-            processedFile: args.processedFile,
+            photo: legacy.photo,
+            processedFile: legacy.processedFile,
           );
         },
       ),

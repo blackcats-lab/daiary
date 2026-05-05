@@ -16,10 +16,15 @@ class AiGenerateScreen extends ConsumerStatefulWidget {
     super.key,
     required this.photo,
     required this.processedFile,
+    this.autoStart = true,
   });
 
   final UploadedPhoto photo;
   final File processedFile;
+
+  /// 撮影直後フローでは true（ハッシュタグを自動生成）。
+  /// 写真詳細画面からの再生成入口では false（ユーザー操作で生成開始）。
+  final bool autoStart;
 
   @override
   ConsumerState<AiGenerateScreen> createState() => _AiGenerateScreenState();
@@ -29,12 +34,18 @@ class _AiGenerateScreenState extends ConsumerState<AiGenerateScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(aiGenerateProvider.notifier)
-          .generateHashtags(widget.photo, widget.processedFile);
-    });
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(aiGenerateProvider.notifier)
+            .generateHashtags(widget.photo, widget.processedFile);
+      });
+    }
   }
+
+  Future<void> _generateHashtags() => ref
+      .read(aiGenerateProvider.notifier)
+      .generateHashtags(widget.photo, widget.processedFile);
 
   Future<void> _copyText(String text, String snack) async {
     await Clipboard.setData(ClipboardData(text: text));
@@ -89,6 +100,7 @@ class _AiGenerateScreenState extends ConsumerState<AiGenerateScreen> {
                     _HashtagSection(
                       phase: state.hashtag,
                       onCopy: (tags) => _copyText(tags.join(' '), 'コピーしました'),
+                      onGenerate: _generateHashtags,
                       onRetry: _retryHashtags,
                     ),
                     const SizedBox(height: 16),
@@ -138,11 +150,13 @@ class _HashtagSection extends StatelessWidget {
   const _HashtagSection({
     required this.phase,
     required this.onCopy,
+    required this.onGenerate,
     required this.onRetry,
   });
 
   final HashtagPhase phase;
   final void Function(List<String> tags) onCopy;
+  final VoidCallback onGenerate;
   final VoidCallback onRetry;
 
   @override
@@ -168,7 +182,13 @@ class _HashtagSection extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         switch (phase) {
-          HashtagIdle() ||
+          HashtagIdle() => Center(
+              child: FilledButton.icon(
+                onPressed: onGenerate,
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('ハッシュタグを生成'),
+              ),
+            ),
           HashtagGenerating() ||
           HashtagSaving() =>
             const _InlineProgress(label: 'タグを生成中…'),
