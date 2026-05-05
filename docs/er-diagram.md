@@ -53,6 +53,8 @@ erDiagram
       jsonb exif_data
       jsonb ai_tags
       boolean is_favorite
+      text caption
+      text alt_text
       timestamptz deleted_at
       timestamptz created_at
     }
@@ -81,7 +83,7 @@ erDiagram
 - 全テーブルで RLS 有効化
 - `subscriptions.plan` は `CHECK (plan IN ('free', 'premium'))`
 - `daily_usage` PK = `(user_id, usage_date)`（アトミック UPSERT 用）
-- `photos`: 未削除 + 新着順インデックス、お気に入り部分インデックス、`ai_tags` GIN インデックス
+- `photos`: 未削除 + 新着順インデックス、お気に入り部分インデックス、`ai_tags` GIN インデックス、`caption` / `alt_text` は CHECK で長さ制限（500 / 300）
 - `album_photos` PK = `(album_id, photo_id)`
 - `albums.cover_photo_id` は `ON DELETE SET NULL`
 - `auth.users` 削除時は全関連テーブルが `ON DELETE CASCADE`

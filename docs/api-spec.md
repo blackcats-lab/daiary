@@ -104,6 +104,8 @@
       "exif_data": {},
       "ai_tags": [],
       "is_favorite": false,
+      "caption": null,
+      "alt_text": null,
       "created_at": "2026-05-04T10:00:00.000Z"
     }
   ],
@@ -157,14 +159,19 @@
 
 ### PATCH /photos/:id
 
-更新可能フィールド: `is_favorite` (boolean), `ai_tags` (array)。
+更新可能フィールド: `is_favorite` (boolean), `ai_tags` (array), `caption` (string|null), `alt_text` (string|null)。
 他のフィールドは送信されても無視される。
-両方とも未指定の場合 400 INVALID_REQUEST。
+いずれも未指定の場合 400 INVALID_REQUEST。
+`caption` / `alt_text` は `null` を明示送信すると消去できる。
 
 リクエスト例:
 
 ```json
 { "is_favorite": true }
+```
+
+```json
+{ "caption": "夕陽が街を金色に染める時間。", "alt_text": "夕方の街並み" }
 ```
 
 レスポンス 200: 更新後の `{ "photo": {...} }`。
