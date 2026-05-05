@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../photo/presentation/providers/photo_list_notifier.dart';
 import '../../../photo/presentation/providers/photo_upload_notifier.dart';
 import '../../../photo/presentation/providers/photo_upload_state.dart';
 import '../../domain/entities/captured_image.dart';
@@ -28,6 +29,10 @@ class CapturePreviewScreen extends ConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('アップロードしました')),
           );
+          // 一覧を再取得してからホームへ。ホーム側 listen に依存しない
+          // ことで、reset() で state が idle に戻ったあとでも確実に
+          // 反映される。
+          ref.read(photoListProvider.notifier).refresh();
           ref.read(photoUploadProvider.notifier).reset();
           context.go('/home');
         case PhotoUploadFailure(:final failure):

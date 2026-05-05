@@ -15,10 +15,18 @@ class SupabaseService {
       client.auth.onAuthStateChange;
 
   /// Edge Function を JWT 自動付与で呼び出す。
+  /// GET の場合は [body] を null にして [queryParameters] を使う。
   static Future<FunctionResponse> invokeFunction(
     String name, {
+    HttpMethod method = HttpMethod.post,
     Map<String, dynamic>? body,
+    Map<String, dynamic>? queryParameters,
   }) {
-    return client.functions.invoke(name, body: body);
+    return client.functions.invoke(
+      name,
+      method: method,
+      body: body,
+      queryParameters: queryParameters,
+    );
   }
 }
