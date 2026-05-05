@@ -40,11 +40,11 @@ daiary/
 ├── mobile/             # Flutter アプリ（iOS / Android）
 ├── supabase/
 │   ├── config.toml     # Supabase CLI ローカル設定
-│   ├── migrations/     # 001-007 の DB スキーマ
+│   ├── migrations/     # 001-008 の DB スキーマ（008 で photos バケット RLS）
 │   ├── functions/      # Edge Functions (Deno)
 │   │   ├── _shared/    # 認証・利用回数・AI 抽象化層
 │   │   ├── ai-generate/        # 本実装済み（PoC 検証済み）
-│   │   ├── photos/             # 雛形のみ（Phase 1 で本実装）
+│   │   ├── photos/             # 本実装済み（Sprint 1 #6 で連携完了）
 │   │   ├── albums/             # 雛形のみ（Phase 1 Sprint 3）
 │   │   └── revenuecat-webhook/ # 雛形のみ（Phase 2）
 │   └── seed.sql
@@ -168,8 +168,8 @@ docs: setup手順にECRレート制限の回避策を追記
 
 ### マイグレーション
 
-- 既存の 001-007 マイグレーションは**変更しない**（本番に適用済みになる前提）。
-- 修正・追加は **新しい番号**（008_xxx.sql）で連番ファイルを追加する。
+- 既存の 001-008 マイグレーションは**変更しない**（本番に適用済みになる前提）。
+- 修正・追加は **新しい番号**（009_xxx.sql）で連番ファイルを追加する。
 - ローカル検証は `make supabase-db-reset`。
 - 全テーブルで RLS 必須。書き込み系の特権操作（`subscriptions` / `usage_logs` / `increment_usage`）は service_role のみ。
 
@@ -186,9 +186,9 @@ docs: setup手順にECRレート制限の回避策を追記
 | Phase | 状態 | 期間 |
 |---|---|---|
 | **Phase 0: 設計・準備** | ✅ 完了（Gemini PoC 含む） | Sprint 0 / 2 週間 |
-| Phase 1 Sprint 1: 認証 + カメラ基盤 | 🚧 進行中（photos CRUD・認証 + ログイン画面 完了。次: カメラ撮影 + Storage） | Week 3-4 |
-| Phase 1 Sprint 2: AI 生成機能 | 未着手 | Week 5-6 |
-| Phase 1 Sprint 3: アルバム + 写真管理 | 未着手 | Week 7-8 |
+| **Phase 1 Sprint 1: 認証 + カメラ基盤** | ✅ 完了（認証 / カメラ撮影 / Storage アップロード / 写真一覧） | Week 3-4 |
+| Phase 1 Sprint 2: AI 生成機能 | ⏳ 次に着手（Gemini で ai_tags を取得し photos.ai_tags に保存） | Week 5-6 |
+| Phase 1 Sprint 3: アルバム + 写真管理 | 未着手（写真詳細画面・削除・お気に入り含む） | Week 7-8 |
 | Phase 2: 課金・広告 | 未着手 | Week 9-10 |
 | Phase 3: テスト・リリース準備 | 未着手 | Week 11-13 |
 
