@@ -88,4 +88,27 @@ class PhotoListNotifier extends _$PhotoListNotifier {
         PhotoListItemView(item: items[i], signedThumbnailUrl: urls[i]),
     ];
   }
+
+  /// 詳細画面で削除された直後に一覧から該当写真を即時除去する。
+  /// 削除 API 自体は詳細側で呼び済みなので、ここでは state の更新のみ。
+  void removeOptimistically(String photoId) {
+    final s = state;
+    if (s is! PhotoListLoaded) return;
+    state = s.copyWith(
+      items: s.items.where((v) => v.item.id != photoId).toList(),
+    );
+  }
+
+  /// 詳細画面でお気に入りトグルされた直後に一覧側のフラグを書き換える。
+  void updateFavoriteOptimistically(String photoId, bool isFavorite) {
+    final s = state;
+    if (s is! PhotoListLoaded) return;
+    state = s.copyWith(items: [
+      for (final v in s.items)
+        if (v.item.id == photoId)
+          v.copyWith(item: v.item.copyWith(isFavorite: isFavorite))
+        else
+          v,
+    ]);
+  }
 }
