@@ -8,7 +8,9 @@ import '../features/auth/presentation/providers/auth_notifier.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
 import '../features/auth/presentation/screens/signup_screen.dart';
 import '../features/auth/presentation/screens/splash_screen.dart';
+import '../features/camera/domain/entities/captured_image.dart';
 import '../features/camera/presentation/screens/camera_screen.dart';
+import '../features/camera/presentation/screens/capture_preview_screen.dart';
 import '../features/photo/presentation/screens/home_screen.dart';
 import '../features/photo/presentation/screens/photo_detail_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -51,9 +53,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/home', name: 'home', builder: (_, __) => const HomeScreen()),
       GoRoute(
-          path: '/camera',
-          name: 'camera',
-          builder: (_, __) => const CameraScreen()),
+        path: '/camera',
+        name: 'camera',
+        builder: (_, __) => const CameraScreen(),
+        routes: [
+          GoRoute(
+            path: 'preview',
+            name: 'camera-preview',
+            builder: (_, state) => CapturePreviewScreen(
+              image: state.extra! as CapturedImage,
+            ),
+          ),
+        ],
+      ),
       GoRoute(
         path: '/photo/:id',
         name: 'photo-detail',
