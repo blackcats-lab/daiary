@@ -30,6 +30,8 @@ interface CreatePhotoBody {
 interface UpdatePhotoBody {
   is_favorite?: boolean;
   ai_tags?: unknown[];
+  caption?: string | null;
+  alt_text?: string | null;
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -87,7 +89,7 @@ async function listPhotos(
   let query = service
     .from("photos")
     .select(
-      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, created_at",
+      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, caption, alt_text, created_at",
     )
     .eq("user_id", userId)
     .is("deleted_at", null)
@@ -124,7 +126,7 @@ async function getPhoto(
   const { data, error } = await service
     .from("photos")
     .select(
-      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, created_at, deleted_at",
+      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, caption, alt_text, created_at, deleted_at",
     )
     .eq("id", id)
     .eq("user_id", userId)
@@ -165,7 +167,7 @@ async function createPhoto(
     .from("photos")
     .insert(insertRow)
     .select(
-      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, created_at",
+      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, caption, alt_text, created_at",
     )
     .single();
 
@@ -191,12 +193,18 @@ async function updatePhoto(
   const updates: Record<string, unknown> = {};
   if (typeof body.is_favorite === "boolean") updates.is_favorite = body.is_favorite;
   if (Array.isArray(body.ai_tags)) updates.ai_tags = body.ai_tags;
+  if (typeof body.caption === "string" || body.caption === null) {
+    updates.caption = body.caption;
+  }
+  if (typeof body.alt_text === "string" || body.alt_text === null) {
+    updates.alt_text = body.alt_text;
+  }
 
   if (Object.keys(updates).length === 0) {
     return jsonError(
       400,
       "INVALID_REQUEST",
-      "更新可能フィールド (is_favorite, ai_tags) が指定されていません",
+      "更新可能フィールド (is_favorite, ai_tags, caption, alt_text) が指定されていません",
     );
   }
 
@@ -207,7 +215,7 @@ async function updatePhoto(
     .eq("user_id", userId)
     .is("deleted_at", null)
     .select(
-      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, created_at",
+      "id, storage_path, thumbnail_path, original_filename, file_size, width, height, exif_data, ai_tags, is_favorite, caption, alt_text, created_at",
     )
     .maybeSingle();
 
