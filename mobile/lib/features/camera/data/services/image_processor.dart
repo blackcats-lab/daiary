@@ -77,4 +77,37 @@ class ImageProcessor {
     // ここでは厳密な値が不要なので 0 を返す（必要になったら image パッケージで補う）。
     return (0, 0);
   }
+
+  /// 一覧画面用のサムネ。長辺 256px / JPEG q70。
+  /// 出力先は process() と同じキャッシュディレクトリ配下。
+  Future<File> generateThumbnail(
+    File source, {
+    int maxLongEdge = 256,
+    int quality = 70,
+  }) async {
+    final outDir = await _ensureOutputDir();
+    final outPath =
+        '${outDir.path}/thumb_${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+    final XFile? compressed;
+    try {
+      compressed = await FlutterImageCompress.compressAndGetFile(
+        source.absolute.path,
+        outPath,
+        format: CompressFormat.jpeg,
+        minWidth: maxLongEdge,
+        minHeight: maxLongEdge,
+        quality: quality,
+        keepExif: false,
+      );
+    } catch (e) {
+      throw CameraFailure('processing_failed', 'サムネイル生成に失敗しました');
+    }
+
+    if (compressed == null) {
+      throw CameraFailure('processing_failed', 'サムネイル生成に失敗しました');
+    }
+
+    return File(compressed.path);
+  }
 }
