@@ -187,8 +187,8 @@ docs: setup手順にECRレート制限の回避策を追記
 |---|---|---|
 | **Phase 0: 設計・準備** | ✅ 完了（Gemini PoC 含む） | Sprint 0 / 2 週間 |
 | **Phase 1 Sprint 1: 認証 + カメラ基盤** | ✅ 完了（認証 / カメラ撮影 / Storage アップロード / 写真一覧） | Week 3-4 |
-| **Phase 1 Sprint 2: AI 生成機能** | 🚧 進行中（#7-#8 ハッシュタグ生成・ai_tags 保存 完了。次: caption / 一覧でのタグ表示） | Week 5-6 |
-| Phase 1 Sprint 3: アルバム + 写真管理 | 未着手（写真詳細画面・削除・お気に入り含む） | Week 7-8 |
+| **Phase 1 Sprint 2: AI 生成機能** | ✅ 完了（#7-#10 ハッシュタグ生成・caption 生成・一覧タグ表示） | Week 5-6 |
+| Phase 1 Sprint 3: アルバム + 写真管理 | 未着手（写真詳細画面・share_plus 共有・削除・お気に入り含む） | Week 7-8 |
 | Phase 2: 課金・広告 | 未着手 | Week 9-10 |
 | Phase 3: テスト・リリース準備 | 未着手 | Week 11-13 |
 
