@@ -190,34 +190,151 @@
 
 ## 3. albums
 
-アルバム CRUD。
+アルバム CRUD と写真の関連付け。`album_photos` 中間テーブルを介して photos と多対多。
+写真の関連付けは専用エンドポイント `POST/DELETE /albums/:id/photos` で複数件を一括操作する。
 
 ### GET /albums
 
 自分のアルバム一覧。
 
+レスポンス 200:
+
+```json
+{
+  "albums": [
+    {
+      "id": "uuid",
+      "name": "夏の思い出",
+      "cover_photo_id": "uuid|null",
+      "cover_thumbnail_path": "user_uuid/.../abc_thumb.jpg|null",
+      "is_public": false,
+      "share_token": null,
+      "photo_count": 12,
+      "created_at": "...",
+      "updated_at": "..."
+    }
+  ]
+}
+```
+
 ### GET /albums/:id
 
-アルバム詳細 + 含まれる写真。
+アルバム詳細 + 含まれる写真。論理削除済み (`deleted_at IS NOT NULL`) の写真は除外。
+
+レスポンス 200:
+
+```json
+{
+  "album": {
+    "id": "uuid",
+    "name": "夏の思い出",
+    "cover_photo_id": "uuid|null",
+    "is_public": false,
+    "share_token": null,
+    "created_at": "...",
+    "updated_at": "..."
+  },
+  "photos": [
+    {
+      "id": "uuid",
+      "storage_path": "...",
+      "thumbnail_path": "...",
+      "width": 4032,
+      "height": 3024,
+      "caption": null,
+      "ai_tags": [],
+      "is_favorite": false,
+      "sort_order": 0,
+      "added_at": "..."
+    }
+  ]
+}
+```
+
+エラー: 400 INVALID_ID / 404 NOT_FOUND
 
 ### POST /albums
 
 ```json
 {
   "name": "夏の思い出",
+  "cover_photo_id": "uuid|null",
   "is_public": false
 }
 ```
 
+| field | required | 備考 |
+|---|---|---|
+| `name` | ✓ | 1〜100 字。空白のみは不可 |
+| `cover_photo_id` | - | 指定時は所有確認 |
+| `is_public` | - | 既定 false |
+
+レスポンス 201: `{ "album": { ...GET と同じシェイプ + photo_count: 0, cover_thumbnail_path: null } }`
+
 ### PATCH /albums/:id
 
-更新可能フィールド: `name`, `cover_photo_id`, `is_public`, `share_token`
+更新可能フィールド: `name` (1〜100 字), `cover_photo_id` (uuid|null, null 明示で消去), `is_public` (boolean), `share_token` (string|null)。
+いずれも未指定の場合 400 INVALID_REQUEST。
 
 ### DELETE /albums/:id
 
-物理削除（`album_photos` は CASCADE）。
+物理削除（`album_photos` は CASCADE）。photos 自体は残る。
 
-> Phase 0 時点では雛形のみ。実装は Phase 1（Sprint 3）。
+レスポンス 200: `{ "id": "uuid", "deleted": true }`
+
+### POST /albums/:id/photos
+
+アルバムに写真を一括追加する。`sort_order` はサーバ側で `MAX(sort_order) + 1` から連番割り振り。
+所有者でない / 論理削除済みの写真、既にアルバムに含まれる写真はサイレント除外せず `skipped` 配列で返す。
+
+リクエスト:
+
+```json
+{ "photo_ids": ["uuid1", "uuid2"] }
+```
+
+| 制約 | 値 |
+|---|---|
+| photo_ids 件数 | 1〜100 |
+
+レスポンス 200:
+
+```json
+{
+  "added": ["uuid1"],
+  "skipped": [
+    { "photo_id": "uuid2", "reason": "already_in_album" },
+    { "photo_id": "uuid3", "reason": "not_owned_or_deleted" }
+  ]
+}
+```
+
+skip 理由コード:
+
+- `already_in_album` — 既にアルバムに含まれている
+- `not_owned_or_deleted` — 自分の写真でない、または論理削除済み
+
+エラー: 400 INVALID_REQUEST / 400 INVALID_ID / 404 NOT_FOUND（アルバム）
+
+### DELETE /albums/:id/photos
+
+アルバムから写真を一括削除する（写真自体は残る）。
+
+リクエスト:
+
+```json
+{ "photo_ids": ["uuid1", "uuid2"] }
+```
+
+レスポンス 200:
+
+```json
+{ "removed": ["uuid1", "uuid2"] }
+```
+
+実際に中間テーブルから削除された photo_id のみ返す。元々関連付けが無かった id は単に含まれない。
+
+エラー: 400 INVALID_REQUEST / 400 INVALID_ID / 404 NOT_FOUND（アルバム）
 
 ## 4. revenuecat-webhook
 
