@@ -13,6 +13,8 @@ abstract class PhotoListItem with _$PhotoListItem {
     int? width,
     int? height,
     @Default(false) bool isFavorite,
+    @Default(<String>[]) List<String> aiTags,
+    String? caption,
   }) = _PhotoListItem;
 }
 
@@ -28,4 +30,8 @@ PhotoListItem photoListItemFromJson(Map<String, dynamic> json) => PhotoListItem(
       width: (json['width'] as num?)?.toInt(),
       height: (json['height'] as num?)?.toInt(),
       isFavorite: json['is_favorite'] as bool? ?? false,
+      aiTags: ((json['ai_tags'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList(growable: false),
+      caption: json['caption'] as String?,
     );
