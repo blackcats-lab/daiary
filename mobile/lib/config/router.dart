@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +13,7 @@ import '../features/auth/presentation/screens/splash_screen.dart';
 import '../features/camera/domain/entities/captured_image.dart';
 import '../features/camera/presentation/screens/camera_screen.dart';
 import '../features/camera/presentation/screens/capture_preview_screen.dart';
+import '../features/photo/domain/entities/uploaded_photo.dart';
 import '../features/photo/presentation/screens/home_screen.dart';
 import '../features/photo/presentation/screens/photo_detail_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
@@ -75,7 +78,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/ai-generate',
         name: 'ai-generate',
-        builder: (_, __) => const AiGenerateScreen(),
+        builder: (_, state) {
+          final args = state.extra! as ({
+            UploadedPhoto photo,
+            File processedFile,
+          });
+          return AiGenerateScreen(
+            photo: args.photo,
+            processedFile: args.processedFile,
+          );
+        },
       ),
       GoRoute(
           path: '/albums',
