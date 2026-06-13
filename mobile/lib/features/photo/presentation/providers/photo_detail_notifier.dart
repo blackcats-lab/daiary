@@ -6,6 +6,7 @@ import '../../../../core/exceptions/photo_failure.dart';
 import '../../data/repositories/photo_list_repository.dart';
 import 'photo_detail_state.dart';
 import 'photo_list_notifier.dart';
+import 'photo_search_notifier.dart';
 
 part 'photo_detail_notifier.g.dart';
 
@@ -59,6 +60,9 @@ class PhotoDetailNotifier extends _$PhotoDetailNotifier {
       ref
           .read(photoListProvider.notifier)
           .updateFavoriteOptimistically(photoId, actual);
+      ref
+          .read(photoSearchProvider.notifier)
+          .updateFavoriteOptimistically(photoId, actual);
     } on PhotoFailure catch (_) {
       // ロールバック
       state = s.copyWith(favoriteUpdating: false);
@@ -76,6 +80,7 @@ class PhotoDetailNotifier extends _$PhotoDetailNotifier {
     try {
       await ref.read(photoListRepositoryProvider).softDelete(photoId);
       ref.read(photoListProvider.notifier).removeOptimistically(photoId);
+      ref.read(photoSearchProvider.notifier).removeOptimistically(photoId);
       final current = state;
       if (current is PhotoDetailLoaded) {
         state = current.copyWith(deleting: false, deleted: true);
