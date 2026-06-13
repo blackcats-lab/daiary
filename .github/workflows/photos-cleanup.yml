@@ -1,0 +1,26 @@
+name: photos-cleanup
+
+# 論理削除から 30 日経過した写真の物理削除バッチ。
+# Edge Function (photos-cleanup) を service_role キーで叩く。
+# 必要な Secrets: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+on:
+  schedule:
+    - cron: "0 18 * * *" # JST 03:00（UTC 18:00）
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Cleanup trashed photos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call photos-cleanup Edge Function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Secrets SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY が未設定です"
+            exit 1
+          fi
+          curl -fsS -X POST "$SUPABASE_URL/functions/v1/photos-cleanup" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"

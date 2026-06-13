@@ -69,6 +69,18 @@ Phase 1 開発開始前に消化しておくこと。
 - [ ] Bundle ID / Application ID を決定し、Flutter プロジェクトに反映
 - [ ] App Store / Play Store のアプリ情報・スクリーンショット枠を確保
 
+## 9. ゴミ箱自動削除バッチ（Sprint 3）
+
+論理削除から 30 日経過した写真を物理削除する `photos-cleanup` Edge Function を
+GitHub Actions の日次スケジュールから叩く（`.github/workflows/photos-cleanup.yml`）。
+
+- [ ] GitHub repo Secrets に `SUPABASE_URL` を登録（本番 Supabase プロジェクトの URL）
+- [ ] GitHub repo Secrets に `SUPABASE_SERVICE_ROLE_KEY` を登録（`sb_secret_...`。**チャットに貼らない**）
+- [ ] `supabase functions deploy photos-cleanup` で本番にデプロイ
+- [ ] Actions の `photos-cleanup` を `workflow_dispatch` で手動実行し、`{ "deleted": N }` が返るか確認
+
+> Secrets 未登録の状態では workflow は明示的に fail する（誤って無認証で叩かないため）。
+
 ## 8. 監視・分析（任意・Phase 3 までに整備）
 
 - [ ] Sentry プロジェクト作成、DSN を `mobile/.env` に追加

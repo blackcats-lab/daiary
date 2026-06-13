@@ -81,6 +81,10 @@ enabled = true
 policy = "oneshot"
 inspector_port = 8083
 
+# photos-cleanup はユーザー JWT ではなく service_role キーの完全一致で認証する
+[functions.photos-cleanup]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
