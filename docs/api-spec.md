@@ -81,12 +81,17 @@
 
 自分の写真一覧（未削除）を新しい順に返す。
 
-クエリパラメータ:
+クエリパラメータ（すべて組み合わせ可）:
 
-| name     | type    | default | 説明                                                            |
-| -------- | ------- | ------- | --------------------------------------------------------------- |
-| `limit`  | int     | 50      | 取得件数。最大 100、不正値や 0 以下は 50 にフォールバック       |
-| `before` | ISO8601 | -       | この `created_at` より古いものだけ取得（ページング用）          |
+| name       | type    | default | 説明                                                                                      |
+| ---------- | ------- | ------- | ----------------------------------------------------------------------------------------- |
+| `limit`    | int     | 50      | 取得件数。最大 100、不正値や 0 以下は 50 にフォールバック                                 |
+| `before`   | ISO8601 | -       | このカーソルより古いものだけ取得（通常は `created_at`、`deleted=true` 時は `deleted_at`） |
+| `tag`      | string  | -       | AI タグの**完全一致**検索（保存値そのまま。`#` の付け外しはしない）。GIN インデックス使用 |
+| `favorite` | `true`  | -       | `is_favorite = true` のみ。`true` 以外の値は無視                                          |
+| `deleted`  | `true`  | -       | ゴミ箱一覧（`deleted_at IS NOT NULL`）。`deleted_at` 降順、レスポンスに `deleted_at` 含む |
+
+タグ検索は完全一致のみ（部分一致は非対応）。検索 UI は `GET /photos/tags` の候補から選択する想定。
 
 レスポンス 200:
 
@@ -114,6 +119,18 @@
 ```
 
 `next_before` は次ページ取得用カーソル。返却件数が `limit` 未満なら `null`。
+`deleted=true` 時のカーソル値は `deleted_at` ベースになる。
+
+### GET /photos/tags
+
+未削除写真の AI タグを出現頻度順に集約して返す（最大 100 件）。検索 UI のタグ候補用。
+直近 1000 枚を対象に Edge Function 内で集約する（件数が増えたら RPC 集約に切替予定）。
+
+レスポンス 200:
+
+```json
+{ "tags": ["#夕焼け", "#海", "#カフェ"] }
+```
 
 ### GET /photos/:id
 
@@ -159,10 +176,19 @@
 
 ### PATCH /photos/:id
 
-更新可能フィールド: `is_favorite` (boolean), `ai_tags` (array), `caption` (string|null), `alt_text` (string|null)。
+更新可能フィールド: `is_favorite` (boolean), `ai_tags` (array), `caption` (string|null), `alt_text` (string|null), `width` (int), `height` (int), `file_size` (int)。
 他のフィールドは送信されても無視される。
 いずれも未指定の場合 400 INVALID_REQUEST。
 `caption` / `alt_text` は `null` を明示送信すると消去できる。
+`width` / `height` / `file_size` は写真編集（トリミング等）後の寸法更新用で、正の整数のみ。
+
+バリデーション（違反時 400 INVALID_REQUEST）:
+
+| field      | 制約                                               |
+| ---------- | -------------------------------------------------- |
+| `caption`  | 500 文字以内                                       |
+| `alt_text` | 300 文字以内                                       |
+| `ai_tags`  | 最大 30 件、各要素は空でない文字列かつ 50 文字以内 |
 
 リクエスト例:
 
@@ -178,7 +204,7 @@
 
 ### DELETE /photos/:id
 
-論理削除（`deleted_at = now()` を set）。物理削除はバッチで 30 日後に実施予定。
+論理削除（`deleted_at = now()` を set）。物理削除は 30 日後にバッチ（photos-cleanup）で実施。
 
 レスポンス 200:
 
@@ -187,6 +213,26 @@
 ```
 
 エラー: 404 NOT_FOUND（既に削除済み or 自分の写真でない）
+
+### DELETE /photos/:id?permanent=true
+
+ゴミ箱内（論理削除済み）の写真を即時物理削除する。**Storage の実ファイル（原寸 + サムネイル）→ DB 行の順**で削除し、Storage 削除に失敗した場合は 500 を返して行を残す（次回の cleanup バッチが再試行する）。
+
+レスポンス 200:
+
+```json
+{ "id": "uuid", "permanently_deleted": true }
+```
+
+エラー: 404 NOT_FOUND（ゴミ箱に存在しない）/ 500 STORAGE_ERROR
+
+### POST /photos/:id/restore
+
+ゴミ箱内の写真を復元する（`deleted_at = null`）。
+
+レスポンス 200: 復元後の `{ "photo": {...} }`。
+
+エラー: 404 NOT_FOUND（ゴミ箱に存在しない）
 
 ## 3. albums
 
