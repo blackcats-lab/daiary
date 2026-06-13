@@ -162,6 +162,52 @@ class PhotoListRepository {
     return next;
   }
 
+  /// caption / ai_tags の手動更新。サーバから返る最新の PhotoDetail を返す。
+  /// caption に null を渡すと消去（空文字も null として送る）。
+  Future<PhotoDetail> updateMeta(
+    String photoId, {
+    String? caption,
+    bool updateCaption = false,
+    List<String>? aiTags,
+  }) async {
+    final body = <String, dynamic>{
+      if (updateCaption)
+        'caption': (caption == null || caption.isEmpty) ? null : caption,
+      if (aiTags != null) 'ai_tags': aiTags,
+    };
+
+    FunctionResponse response;
+    try {
+      response = await SupabaseService.invokeFunction(
+        'photos/$photoId',
+        method: HttpMethod.patch,
+        body: body,
+      );
+    } on FunctionException catch (e) {
+      if (e.status == 404) {
+        throw PhotoFailure('not_found', '写真が見つかりません');
+      }
+      throw PhotoFailure('update_failed', '更新に失敗しました (${e.status})');
+    } on SocketException catch (e) {
+      throw PhotoFailure('network', 'ネットワークに接続できませんでした: ${e.message}');
+    }
+
+    if (response.status != 200) {
+      throw PhotoFailure(
+        'update_failed',
+        '更新に失敗しました (status=${response.status})',
+      );
+    }
+
+    final data = response.data;
+    final photo =
+        (data is Map ? data['photo'] as Map? : null)?.cast<String, dynamic>();
+    if (photo == null) {
+      throw PhotoFailure('update_failed', '想定外のレスポンス形式です');
+    }
+    return photoDetailFromJson(photo);
+  }
+
   /// 論理削除。
   Future<void> softDelete(String photoId) async {
     FunctionResponse response;

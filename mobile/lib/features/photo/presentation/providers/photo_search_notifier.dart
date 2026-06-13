@@ -107,6 +107,28 @@ class PhotoSearchNotifier extends _$PhotoSearchNotifier {
     ]);
   }
 
+  /// caption / ai_tags の手動編集を検索結果にも反映する。
+  void updateItemOptimistically(
+    String photoId, {
+    List<String>? aiTags,
+    String? caption,
+  }) {
+    final s = state;
+    if (s is! PhotoSearchLoaded) return;
+    state = s.copyWith(items: [
+      for (final v in s.items)
+        if (v.item.id == photoId)
+          v.copyWith(
+            item: v.item.copyWith(
+              aiTags: aiTags ?? v.item.aiTags,
+              caption: caption ?? v.item.caption,
+            ),
+          )
+        else
+          v,
+    ]);
+  }
+
   Future<List<PhotoListItemView>> _buildViews(
     PhotoListRepository repo,
     List<PhotoListItem> items,

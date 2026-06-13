@@ -20,6 +20,7 @@ sealed class PhotoDetailState with _$PhotoDetailState {
     @Default(false) bool deleting,
     @Default(false) bool sharing,
     @Default(false) bool preparingAi,
+    @Default(false) bool metaUpdating,
     @Default(false) bool deleted,
   }) = PhotoDetailLoaded;
 
