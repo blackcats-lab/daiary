@@ -9,6 +9,8 @@ import '../../domain/entities/photo_detail.dart';
 import '../../domain/entities/uploaded_photo.dart';
 import '../providers/photo_detail_notifier.dart';
 import '../providers/photo_detail_state.dart';
+import '../widgets/caption_edit_sheet.dart';
+import '../widgets/tag_edit_sheet.dart';
 
 class PhotoDetailScreen extends ConsumerStatefulWidget {
   const PhotoDetailScreen({super.key, required this.photoId});
@@ -101,6 +103,37 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         createdAt: d.createdAt,
       );
 
+  Future<void> _editCaption(PhotoDetail detail) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result =
+        await CaptionEditSheet.show(context, initial: detail.caption);
+    if (result == null) return; // キャンセル
+    try {
+      await ref
+          .read(photoDetailProvider(widget.photoId).notifier)
+          .updateCaption(result);
+    } on PhotoFailure catch (f) {
+      messenger.showSnackBar(SnackBar(content: Text(f.message)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('更新に失敗しました: $e')));
+    }
+  }
+
+  Future<void> _editTags(PhotoDetail detail) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await TagEditSheet.show(context, initial: detail.aiTags);
+    if (result == null) return; // キャンセル
+    try {
+      await ref
+          .read(photoDetailProvider(widget.photoId).notifier)
+          .updateTags(result);
+    } on PhotoFailure catch (f) {
+      messenger.showSnackBar(SnackBar(content: Text(f.message)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('更新に失敗しました: $e')));
+    }
+  }
+
   Future<void> _confirmDelete() async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
@@ -184,6 +217,8 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         PhotoDetailLoaded() => _LoadedView(
             state: state,
             onGoToAiGenerate: () => _goToAiGenerate(state.detail),
+            onEditCaption: () => _editCaption(state.detail),
+            onEditTags: () => _editTags(state.detail),
           ),
       },
     );
@@ -194,10 +229,14 @@ class _LoadedView extends StatelessWidget {
   const _LoadedView({
     required this.state,
     required this.onGoToAiGenerate,
+    required this.onEditCaption,
+    required this.onEditTags,
   });
 
   final PhotoDetailLoaded state;
   final VoidCallback onGoToAiGenerate;
+  final VoidCallback onEditCaption;
+  final VoidCallback onEditTags;
 
   @override
   Widget build(BuildContext context) {
@@ -241,8 +280,12 @@ class _LoadedView extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // 2) caption
-          if (d.caption != null && d.caption!.isNotEmpty) ...[
+          // 2) caption（編集可能）
+          _SectionHeader(
+            title: 'キャプション',
+            onEdit: state.metaUpdating ? null : onEditCaption,
+          ),
+          if (d.caption != null && d.caption!.isNotEmpty)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -254,12 +297,20 @@ class _LoadedView extends StatelessWidget {
                 d.caption!,
                 style: const TextStyle(fontSize: 14, height: 1.6),
               ),
+            )
+          else
+            const Text(
+              'キャプションはまだありません',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            const SizedBox(height: 12),
-          ],
+          const SizedBox(height: 12),
 
-          // 3) ai_tags
-          if (d.aiTags.isNotEmpty) ...[
+          // 3) ai_tags（編集可能）
+          _SectionHeader(
+            title: 'タグ',
+            onEdit: state.metaUpdating ? null : onEditTags,
+          ),
+          if (d.aiTags.isNotEmpty)
             Wrap(
               spacing: 6,
               runSpacing: 4,
@@ -270,9 +321,13 @@ class _LoadedView extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                   ),
               ],
+            )
+          else
+            const Text(
+              'タグはまだありません',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            const SizedBox(height: 12),
-          ],
+          const SizedBox(height: 12),
 
           // 4) alt_text
           if (d.altText != null && d.altText!.isNotEmpty) ...[
@@ -308,6 +363,32 @@ class _LoadedView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.onEdit});
+
+  final String title;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        ),
+        const Spacer(),
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          tooltip: '編集',
+          visualDensity: VisualDensity.compact,
+          onPressed: onEdit,
+        ),
+      ],
     );
   }
 }

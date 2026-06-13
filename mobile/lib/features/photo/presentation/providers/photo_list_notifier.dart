@@ -111,4 +111,27 @@ class PhotoListNotifier extends _$PhotoListNotifier {
           v,
     ]);
   }
+
+  /// 詳細画面で caption / ai_tags が手動編集された直後に一覧側へ反映する。
+  /// 一覧のタグオーバーレイ・caption を最新化する。
+  void updateItemOptimistically(
+    String photoId, {
+    List<String>? aiTags,
+    String? caption,
+  }) {
+    final s = state;
+    if (s is! PhotoListLoaded) return;
+    state = s.copyWith(items: [
+      for (final v in s.items)
+        if (v.item.id == photoId)
+          v.copyWith(
+            item: v.item.copyWith(
+              aiTags: aiTags ?? v.item.aiTags,
+              caption: caption ?? v.item.caption,
+            ),
+          )
+        else
+          v,
+    ]);
+  }
 }

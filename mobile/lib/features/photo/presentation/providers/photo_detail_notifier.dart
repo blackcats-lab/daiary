@@ -94,6 +94,55 @@ class PhotoDetailNotifier extends _$PhotoDetailNotifier {
     }
   }
 
+  /// caption を手動更新する。空文字は消去（null 送信）。
+  Future<void> updateCaption(String? caption) async {
+    await _updateMeta(caption: caption, updateCaption: true);
+  }
+
+  /// ai_tags を手動更新する。
+  Future<void> updateTags(List<String> tags) async {
+    await _updateMeta(aiTags: tags);
+  }
+
+  Future<void> _updateMeta({
+    String? caption,
+    bool updateCaption = false,
+    List<String>? aiTags,
+  }) async {
+    final s = state;
+    if (s is! PhotoDetailLoaded || s.metaUpdating) return;
+    state = s.copyWith(metaUpdating: true);
+    try {
+      final updated = await ref.read(photoListRepositoryProvider).updateMeta(
+            photoId,
+            caption: caption,
+            updateCaption: updateCaption,
+            aiTags: aiTags,
+          );
+      final current = state;
+      if (current is PhotoDetailLoaded) {
+        state = current.copyWith(metaUpdating: false, detail: updated);
+      }
+      // 一覧・検索結果のタグオーバーレイ / caption を最新化
+      ref.read(photoListProvider.notifier).updateItemOptimistically(
+            photoId,
+            aiTags: updated.aiTags,
+            caption: updated.caption,
+          );
+      ref.read(photoSearchProvider.notifier).updateItemOptimistically(
+            photoId,
+            aiTags: updated.aiTags,
+            caption: updated.caption,
+          );
+    } on PhotoFailure catch (_) {
+      state = s.copyWith(metaUpdating: false);
+      rethrow;
+    } catch (_) {
+      state = s.copyWith(metaUpdating: false);
+      rethrow;
+    }
+  }
+
   /// 共有 / AI 再生成用に Storage から原寸を一時ファイルに落として返す。
   Future<File?> prepareLocalFile() async {
     final s = state;
