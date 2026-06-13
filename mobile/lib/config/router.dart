@@ -21,6 +21,7 @@ import '../features/photo/domain/entities/uploaded_photo.dart';
 import '../features/photo/presentation/screens/home_screen.dart';
 import '../features/photo/presentation/screens/photo_detail_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
+import '../features/trash/presentation/screens/trash_screen.dart';
 
 /// 認証不要なパス（ログイン前でもアクセス可）
 const _publicPaths = {'/login', '/signup', '/splash'};
@@ -143,9 +144,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
-          path: '/settings',
-          name: 'settings',
-          builder: (_, __) => const SettingsScreen()),
+        path: '/settings',
+        name: 'settings',
+        builder: (_, __) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'trash',
+            name: 'trash',
+            builder: (_, __) => const TrashScreen(),
+          ),
+        ],
+      ),
     ],
   );
 });

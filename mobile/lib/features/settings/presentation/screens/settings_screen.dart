@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../auth/presentation/providers/auth_notifier.dart';
 
@@ -25,6 +26,14 @@ class SettingsScreen extends ConsumerWidget {
           const ListTile(title: Text('テーマ'), subtitle: Text('未実装')),
           const ListTile(title: Text('通知'), subtitle: Text('未実装')),
           const ListTile(title: Text('ストレージ'), subtitle: Text('未実装')),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('ゴミ箱'),
+            subtitle: const Text('削除した写真（30 日後に自動削除）'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/settings/trash'),
+          ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.logout),
