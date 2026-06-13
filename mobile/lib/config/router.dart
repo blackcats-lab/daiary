@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/ai_generate/presentation/screens/ai_generate_screen.dart';
+import '../features/album/presentation/screens/album_create_screen.dart';
 import '../features/album/presentation/screens/album_list_screen.dart';
 import '../features/auth/presentation/providers/auth_notifier.dart';
 import '../features/auth/presentation/screens/login_screen.dart';
@@ -90,9 +91,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-          path: '/albums',
-          name: 'albums',
-          builder: (_, __) => const AlbumListScreen()),
+        path: '/albums',
+        name: 'albums',
+        builder: (_, __) => const AlbumListScreen(),
+        routes: [
+          GoRoute(
+            path: 'new',
+            name: 'album-new',
+            builder: (_, __) => const AlbumCreateScreen(),
+          ),
+        ],
+      ),
       GoRoute(
           path: '/settings',
           name: 'settings',
