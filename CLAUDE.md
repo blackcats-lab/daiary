@@ -40,16 +40,17 @@ daiary/
 ├── mobile/             # Flutter アプリ（iOS / Android）
 ├── supabase/
 │   ├── config.toml     # Supabase CLI ローカル設定
-│   ├── migrations/     # 001-008 の DB スキーマ（008 で photos バケット RLS）
+│   ├── migrations/     # 001-009 の DB スキーマ（008 で photos バケット RLS、009 で caption/alt_text）
 │   ├── functions/      # Edge Functions (Deno)
 │   │   ├── _shared/    # 認証・利用回数・AI 抽象化層
 │   │   ├── ai-generate/        # 本実装済み（PoC 検証済み）
-│   │   ├── photos/             # 本実装済み（Sprint 1 #6 で連携完了）
-│   │   ├── albums/             # 雛形のみ（Phase 1 Sprint 3）
+│   │   ├── photos/             # 本実装済み（検索・ゴミ箱・編集対応。Sprint 3 で拡張）
+│   │   ├── photos-cleanup/     # 本実装済み（ゴミ箱30日自動削除。GitHub Actions cron 駆動）
+│   │   ├── albums/             # 本実装済み（Phase 1 Sprint 3）
 │   │   └── revenuecat-webhook/ # 雛形のみ（Phase 2）
 │   └── seed.sql
 ├── docs/               # 全設計ドキュメント
-├── .github/workflows/  # mobile-ci / functions-ci / db-migration
+├── .github/workflows/  # mobile-ci / functions-ci / db-migration / photos-cleanup（日次cron）
 ├── Makefile            # 統一タスクランナー
 └── docker-compose.yml
 ```
@@ -188,7 +189,7 @@ docs: setup手順にECRレート制限の回避策を追記
 | **Phase 0: 設計・準備** | ✅ 完了（Gemini PoC 含む） | Sprint 0 / 2 週間 |
 | **Phase 1 Sprint 1: 認証 + カメラ基盤** | ✅ 完了（認証 / カメラ撮影 / Storage アップロード / 写真一覧） | Week 3-4 |
 | **Phase 1 Sprint 2: AI 生成機能** | ✅ 完了（#7-#10 ハッシュタグ生成・caption 生成・一覧タグ表示） | Week 5-6 |
-| Phase 1 Sprint 3: アルバム + 写真管理 | 🚧 進行中（albums Edge Function・写真詳細・AI 再生成入口・アルバム CRUD UI 完了。残: AI タグ検索・写真編集・ゴミ箱） | Week 7-8 |
+| **Phase 1 Sprint 3: アルバム + 写真管理** | ✅ 完了（albums Edge Function・写真詳細・アルバム CRUD UI・AI タグ検索・caption/タグ手動編集・ゴミ箱・写真編集） | Week 7-8 |
 | Phase 2: 課金・広告 | 未着手 | Week 9-10 |
 | Phase 3: テスト・リリース準備 | 未着手 | Week 11-13 |
 
