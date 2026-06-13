@@ -143,6 +143,26 @@ class PhotoDetailNotifier extends _$PhotoDetailNotifier {
     }
   }
 
+  /// 写真編集から戻った後に詳細を再取得する。
+  /// 署名 URL に再取得時刻のクエリを付け、編集後の画像で
+  /// cached_network_image のキャッシュを確実に更新する。
+  Future<void> reloadAfterEdit() async {
+    final s = state;
+    if (s is! PhotoDetailLoaded) return;
+    try {
+      final repo = ref.read(photoListRepositoryProvider);
+      final detail = await repo.fetchDetail(photoId);
+      final url = await repo.createOriginalSignedUrl(detail.storagePath);
+      final busted = url == null
+          ? null
+          : '$url&v=${DateTime.now().millisecondsSinceEpoch}';
+      state =
+          PhotoDetailState.loaded(detail: detail, signedOriginalUrl: busted);
+    } on PhotoFailure catch (f) {
+      state = PhotoDetailState.error(f);
+    }
+  }
+
   /// 共有 / AI 再生成用に Storage から原寸を一時ファイルに落として返す。
   Future<File?> prepareLocalFile() async {
     final s = state;

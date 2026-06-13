@@ -134,6 +134,34 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
     }
   }
 
+  /// 写真編集画面へ遷移する。原寸を一時ファイルに落として渡し、
+  /// 戻ったらキャッシュバスター付きで再取得する。
+  Future<void> _goToEdit(PhotoDetail detail) async {
+    final notifier = ref.read(photoDetailProvider(widget.photoId).notifier);
+    final messenger = ScaffoldMessenger.of(context);
+    notifier.setPreparingAi(true);
+    try {
+      final file = await notifier.prepareLocalFile();
+      if (file == null || !mounted) return;
+      final result = await context.push<bool>(
+        '/photo/${widget.photoId}/edit',
+        extra: (
+          sourceFile: file,
+          storagePath: detail.storagePath,
+          thumbnailPath: detail.thumbnailPath ?? detail.storagePath,
+        ),
+      );
+      if (!mounted) return;
+      if (result == true) {
+        await notifier.reloadAfterEdit();
+      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('画像の取得に失敗しました: $e')));
+    } finally {
+      notifier.setPreparingAi(false);
+    }
+  }
+
   Future<void> _confirmDelete() async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await showDialog<bool>(
@@ -191,6 +219,12 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
               ),
               tooltip: 'お気に入り',
               onPressed: state.favoriteUpdating ? null : _toggleFavorite,
+            ),
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: '編集',
+              onPressed:
+                  state.preparingAi ? null : () => _goToEdit(state.detail),
             ),
             IconButton(
               icon: const Icon(Icons.share),

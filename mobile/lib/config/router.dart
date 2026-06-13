@@ -20,6 +20,7 @@ import '../features/camera/presentation/screens/capture_preview_screen.dart';
 import '../features/photo/domain/entities/uploaded_photo.dart';
 import '../features/photo/presentation/screens/home_screen.dart';
 import '../features/photo/presentation/screens/photo_detail_screen.dart';
+import '../features/photo_edit/presentation/screens/photo_edit_screen.dart';
 import '../features/settings/presentation/screens/settings_screen.dart';
 import '../features/trash/presentation/screens/trash_screen.dart';
 
@@ -79,6 +80,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'photo-detail',
         builder: (_, state) =>
             PhotoDetailScreen(photoId: state.pathParameters['id']!),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            name: 'photo-edit',
+            builder: (_, state) {
+              final extra = state.extra! as ({
+                File sourceFile,
+                String storagePath,
+                String thumbnailPath,
+              });
+              return PhotoEditScreen(
+                photoId: state.pathParameters['id']!,
+                sourceFile: extra.sourceFile,
+                storagePath: extra.storagePath,
+                thumbnailPath: extra.thumbnailPath,
+              );
+            },
+          ),
+        ],
       ),
       GoRoute(
         path: '/ai-generate',
