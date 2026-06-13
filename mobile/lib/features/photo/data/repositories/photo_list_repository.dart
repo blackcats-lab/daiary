@@ -21,10 +21,19 @@ class PhotoListRepository {
   static const _bucket = 'photos';
 
   /// photos Edge Function の GET /photos を叩いて 1 ページ分取得する。
-  Future<PhotoListPage> fetchPage({DateTime? before, int limit = 30}) async {
+  ///
+  /// [tag] / [favoriteOnly] を指定すると検索結果に絞り込む（タグは完全一致）。
+  Future<PhotoListPage> fetchPage({
+    DateTime? before,
+    int limit = 30,
+    String? tag,
+    bool favoriteOnly = false,
+  }) async {
     final query = <String, dynamic>{
       'limit': '$limit',
       if (before != null) 'before': before.toUtc().toIso8601String(),
+      if (tag != null && tag.isNotEmpty) 'tag': tag,
+      if (favoriteOnly) 'favorite': 'true',
     };
 
     FunctionResponse response;
@@ -60,6 +69,29 @@ class PhotoListRepository {
     final nextBefore =
         nextBeforeRaw == null ? null : DateTime.parse(nextBeforeRaw);
     return PhotoListPage(items: items, nextBefore: nextBefore);
+  }
+
+  /// photos Edge Function の GET /photos/tags を叩いてタグ候補を取得する。
+  /// 検索 UI のサジェスト用。失敗時は空リストを返す（候補無しで検索は続行可能）。
+  Future<List<String>> fetchTags() async {
+    FunctionResponse response;
+    try {
+      response = await SupabaseService.invokeFunction(
+        'photos/tags',
+        method: HttpMethod.get,
+      );
+    } on FunctionException {
+      return const [];
+    } on SocketException {
+      return const [];
+    } catch (_) {
+      return const [];
+    }
+
+    if (response.status != 200) return const [];
+    final data = response.data;
+    if (data is! Map) return const [];
+    return (data['tags'] as List? ?? const []).whereType<String>().toList();
   }
 
   /// photos Edge Function の GET /photos/:id を叩いて 1 件分取得する。
