@@ -355,3 +355,24 @@ RevenueCat からのサブスク状態変更通知を受ける。
 | その他 | スキップ（200 を返す） |
 
 レスポンス: `{ "ok": true }` または上記共通エラー形式。
+
+## 5. photos-cleanup
+
+論理削除から 30 日経過した写真を物理削除するバッチ。GitHub Actions の日次スケジュール
+（`.github/workflows/photos-cleanup.yml`）から呼ばれる内部エンドポイント。
+
+### POST /photos-cleanup
+
+ヘッダー: `Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>`（完全一致のみ許可。ユーザー JWT では呼べない）
+
+`deleted_at` が 30 日より古い写真を最大 100 件ずつバッチで処理する。各写真について
+**Storage の実ファイル（原寸 + サムネイル）→ DB 行**の順で削除し、Storage 削除に
+失敗した写真はスキップして行を残す（次回実行で再試行）。
+
+レスポンス 200:
+
+```json
+{ "deleted": 12, "skipped": 0, "cutoff": "2026-05-14T00:00:00.000Z" }
+```
+
+エラー: 401 UNAUTHORIZED / 500 CONFIG_ERROR（キー未設定）/ 500 DB_ERROR
