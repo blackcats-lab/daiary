@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/exceptions/photo_failure.dart';
 import '../../domain/entities/photo_detail.dart';
+import '../../domain/entities/uploaded_photo.dart';
 import '../providers/photo_detail_notifier.dart';
 import '../providers/photo_detail_state.dart';
 
@@ -59,6 +60,46 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
       notifier.setSharing(false);
     }
   }
+
+  /// 詳細画面から AI 生成画面へ遷移する。
+  /// Storage から原寸を一時ファイルにダウンロードして UploadedPhoto を再構成し、
+  /// 既存 /ai-generate ルートに渡す。autoStart=false で待機状態の画面を開く。
+  Future<void> _goToAiGenerate(PhotoDetail detail) async {
+    final notifier = ref.read(photoDetailProvider(widget.photoId).notifier);
+    final messenger = ScaffoldMessenger.of(context);
+    notifier.setPreparingAi(true);
+    try {
+      final file = await notifier.prepareLocalFile();
+      if (file == null) return;
+      if (!mounted) return;
+      await context.push(
+        '/ai-generate',
+        extra: (
+          photo: _toUploaded(detail),
+          processedFile: file,
+          autoStart: false,
+        ),
+      );
+      // 戻ってきたら caption / tags を最新化
+      if (!mounted) return;
+      await ref.read(photoDetailProvider(widget.photoId).notifier).load();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('画像の取得に失敗しました: $e')),
+      );
+    } finally {
+      // 画面が disposed されている可能性があるため state 直接触らない
+      notifier.setPreparingAi(false);
+    }
+  }
+
+  /// PhotoDetail → UploadedPhoto。thumbnailPath が無い場合は storagePath を fallback。
+  UploadedPhoto _toUploaded(PhotoDetail d) => UploadedPhoto(
+        id: d.id,
+        storagePath: d.storagePath,
+        thumbnailPath: d.thumbnailPath ?? d.storagePath,
+        createdAt: d.createdAt,
+      );
 
   Future<void> _confirmDelete() async {
     final messenger = ScaffoldMessenger.of(context);
@@ -140,16 +181,23 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
             onRetry: () =>
                 ref.read(photoDetailProvider(widget.photoId).notifier).load(),
           ),
-        PhotoDetailLoaded() => _LoadedView(state: state),
+        PhotoDetailLoaded() => _LoadedView(
+            state: state,
+            onGoToAiGenerate: () => _goToAiGenerate(state.detail),
+          ),
       },
     );
   }
 }
 
 class _LoadedView extends StatelessWidget {
-  const _LoadedView({required this.state});
+  const _LoadedView({
+    required this.state,
+    required this.onGoToAiGenerate,
+  });
 
   final PhotoDetailLoaded state;
+  final VoidCallback onGoToAiGenerate;
 
   @override
   Widget build(BuildContext context) {
@@ -241,12 +289,21 @@ class _LoadedView extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // 6) AI 生成（PR-F で接続予定。PR-E では disabled）
-          const FilledButton(
-            onPressed: null,
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('AI で言葉を添える（次の PR で接続）'),
+          // 6) AI 生成入口
+          FilledButton.icon(
+            onPressed: state.preparingAi ? null : onGoToAiGenerate,
+            icon: state.preparingAi
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.auto_awesome),
+            label: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                state.preparingAi ? '画像を準備中…' : 'AI で言葉を添える',
+              ),
             ),
           ),
         ],
