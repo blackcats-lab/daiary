@@ -128,6 +128,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const _SocialLoginRow(),
                   const SizedBox(height: 16),
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () => context.go('/signup'),
                     child: RichText(
                       text: const TextSpan(
