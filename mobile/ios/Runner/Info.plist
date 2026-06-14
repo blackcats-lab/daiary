@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>写真を撮影して日記に追加するためにカメラを使用します。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ギャラリーから写真を選んで日記に追加するためにアクセスします。</string>
 </dict>
 </plist>

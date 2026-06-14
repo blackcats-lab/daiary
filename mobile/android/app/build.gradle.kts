@@ -7,8 +7,11 @@ plugins {
 
 android {
     namespace = "com.example.daiary"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // image_cropper / photo_manager 等が compileSdk 36 を要求するため上書き。
+    compileSdk = 36
+    // 各種プラグイン（camera_android_camerax, flutter_image_compress 等）が
+    // 27.0.12077973 を要求するため上書き。
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

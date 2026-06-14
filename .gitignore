@@ -58,9 +58,13 @@ supabase/.branches/
 supabase/.temp/
 supabase/.env
 supabase/.env.local
+# Studio の SQL ノート（ローカル限定）
+supabase/snippets/
 
 # ===== Deno (Edge Functions) =====
 supabase/functions/**/node_modules/
+# ローカル Deno のバージョン差による lockfile 形式差分を避ける（CI は deno v1）
+supabase/functions/deno.lock
 
 # ===== Node (general) =====
 node_modules/

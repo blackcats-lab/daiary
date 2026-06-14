@@ -24,14 +24,14 @@ Phase 1 開発開始前に消化しておくこと。
 
 ## 3. Gemini API（PoC・本番）
 
-- [ ] [Google AI Studio](https://aistudio.google.com/) で API キー取得
-- [ ] `supabase/.env.local` の `GEMINI_API_KEY` に投入してローカル `ai-generate` を叩く
-  - サンプル写真 → `taskType: "hashtag"` で 10 個取得できるか
-  - サンプル写真 → `taskType: "caption"` で 80〜140 字の caption が返るか
-  - `usage_logs` に `input_tokens` / `output_tokens` / `cost_usd` が記録されるか
-- [ ] 1 リクエストあたりのコストが想定（約 0.032 円）に収まるか確認
-- [ ] PoC 結果を `docs/` 配下に PoC レポートとして残す（任意）
-- [ ] 本番 Supabase Secrets に `GEMINI_API_KEY` を投入
+- [x] [Google AI Studio](https://aistudio.google.com/) で API キー取得
+- [x] `supabase/functions/.env.local` の `GEMINI_API_KEY` に投入してローカル `ai-generate` を叩く
+  - サンプル写真 → `taskType: "hashtag"` で 10 個取得できるか → ✅ 8 個取得（指定数で動作）
+  - サンプル写真 → `taskType: "caption"` で 80〜140 字の caption が返るか → ✅ caption + altText 取得
+  - `usage_logs` に `input_tokens` / `output_tokens` / `cost_usd` が記録されるか → ✅
+- [x] 1 リクエストあたりのコストが想定（約 0.032 円）に収まるか確認 → ✅ 実測 0.008〜0.014 円（想定より安い）
+- [x] PoC 結果を `docs/` 配下に PoC レポートとして残す → [gemini-poc-result.md](gemini-poc-result.md)
+- [ ] 本番 Supabase Secrets に `GEMINI_API_KEY` を投入（§2 と合わせて実施）
 
 ## 4. RevenueCat
 
@@ -50,13 +50,16 @@ Phase 1 開発開始前に消化しておくこと。
 
 ## 6. GitHub リポジトリ運用
 
-- [ ] `develop` ブランチを作成
-- [ ] Branch protection rule:
-  - `main` / `develop` への直 push 禁止
-  - PR には CI（`mobile-ci` / `functions-ci` / `db-migration` のうち該当するもの）通過を必須化
-  - Required reviewers 1 名以上
+- [x] `develop` ブランチを作成
+- [x] Branch protection rule:
+  - `main` / `develop` で PR 必須
+  - Required status checks: `Analyze & Test`, `Lint & Test`, `Validate migrations on local Supabase`
+  - 必要に応じて Required reviewers を 1 名以上に
 - [ ] GitHub Issues / Projects でスプリントボード作成
 - [ ] Discord 連携 Webhook（任意）
+
+> Required status check の登録は「過去 7 日に走った check 名」をサジェストする UI のため、
+> 初回は PR を 1 つ作って CI を完走させてから登録する必要がある（dAIary では PR #1 で対応済み）。
 
 ## 7. ストア準備（Phase 3 で必要）
 
@@ -65,6 +68,18 @@ Phase 1 開発開始前に消化しておくこと。
 - [ ] アプリ名「dAIary」の利用可否確認・確保
 - [ ] Bundle ID / Application ID を決定し、Flutter プロジェクトに反映
 - [ ] App Store / Play Store のアプリ情報・スクリーンショット枠を確保
+
+## 9. ゴミ箱自動削除バッチ（Sprint 3）
+
+論理削除から 30 日経過した写真を物理削除する `photos-cleanup` Edge Function を
+GitHub Actions の日次スケジュールから叩く（`.github/workflows/photos-cleanup.yml`）。
+
+- [ ] GitHub repo Secrets に `SUPABASE_URL` を登録（本番 Supabase プロジェクトの URL）
+- [ ] GitHub repo Secrets に `SUPABASE_SERVICE_ROLE_KEY` を登録（`sb_secret_...`。**チャットに貼らない**）
+- [ ] `supabase functions deploy photos-cleanup` で本番にデプロイ
+- [ ] Actions の `photos-cleanup` を `workflow_dispatch` で手動実行し、`{ "deleted": N }` が返るか確認
+
+> Secrets 未登録の状態では workflow は明示的に fail する（誤って無認証で叩かないため）。
 
 ## 8. 監視・分析（任意・Phase 3 までに整備）
 
