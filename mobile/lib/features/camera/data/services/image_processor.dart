@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
@@ -25,14 +28,16 @@ class ImageProcessor {
     final outPath =
         '${outDir.path}/cap_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+    final target = await _targetDimensions(source, maxLongEdge);
+
     final XFile? compressed;
     try {
       compressed = await FlutterImageCompress.compressAndGetFile(
         source.absolute.path,
         outPath,
         format: CompressFormat.jpeg,
-        minWidth: maxLongEdge,
-        minHeight: maxLongEdge,
+        minWidth: target.$1,
+        minHeight: target.$2,
         quality: quality,
         keepExif: false,
       );
@@ -71,11 +76,49 @@ class ImageProcessor {
     }
   }
 
+  /// flutter_image_compress の minWidth/minHeight は「両辺がこの値以上になる」
+  /// 下限指定（短辺基準）で、正方形指定 (1024, 1024) だと 4032x3024 は
+  /// 1365x1024（長辺 1365）になり、片辺が 1024 未満のパノラマ等は一切
+  /// リサイズされない。元画像の寸法から「長辺 = maxLongEdge」となる目標サイズを
+  /// 計算して渡すことで、仕様（長辺 1024px）と 1.5MB のアップロード上限を守る。
+  Future<(int, int)> _targetDimensions(File source, int maxLongEdge) async {
+    final dims = await _readDimensions(source);
+    if (dims.$1 <= 0 || dims.$2 <= 0) {
+      // 寸法が読めない場合（対応外コーデック等）は従来通りの下限指定に留める
+      return (maxLongEdge, maxLongEdge);
+    }
+    final longEdge = max(dims.$1, dims.$2);
+    if (longEdge <= maxLongEdge) return dims; // 拡大はしない
+    final scale = maxLongEdge / longEdge;
+    return (
+      max(1, (dims.$1 * scale).round()),
+      max(1, (dims.$2 * scale).round()),
+    );
+  }
+
+  /// 画像ヘッダのみデコードして寸法を返す。失敗時は (0, 0)。
   Future<(int, int)> _readDimensions(File file) async {
-    // flutter_image_compress は dimension を返さないため、
-    // Image decoder を簡易的に使う代わりに 0 で埋めて UI 側で再計測する。
-    // ここでは厳密な値が不要なので 0 を返す（必要になったら image パッケージで補う）。
-    return (0, 0);
+    try {
+      final bytes = await file.readAsBytes();
+      return await _dimensionsFromBytes(bytes);
+    } catch (_) {
+      return (0, 0);
+    }
+  }
+
+  Future<(int, int)> _dimensionsFromBytes(Uint8List bytes) async {
+    ui.ImmutableBuffer? buffer;
+    ui.ImageDescriptor? descriptor;
+    try {
+      buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+      descriptor = await ui.ImageDescriptor.encoded(buffer);
+      return (descriptor.width, descriptor.height);
+    } catch (_) {
+      return (0, 0);
+    } finally {
+      descriptor?.dispose();
+      buffer?.dispose();
+    }
   }
 
   /// 一覧画面用のサムネ。長辺 256px / JPEG q70。
@@ -89,14 +132,16 @@ class ImageProcessor {
     final outPath =
         '${outDir.path}/thumb_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+    final target = await _targetDimensions(source, maxLongEdge);
+
     final XFile? compressed;
     try {
       compressed = await FlutterImageCompress.compressAndGetFile(
         source.absolute.path,
         outPath,
         format: CompressFormat.jpeg,
-        minWidth: maxLongEdge,
-        minHeight: maxLongEdge,
+        minWidth: target.$1,
+        minHeight: target.$2,
         quality: quality,
         keepExif: false,
       );
