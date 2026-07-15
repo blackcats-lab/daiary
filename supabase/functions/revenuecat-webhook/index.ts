@@ -50,12 +50,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
     return jsonError(400, "INVALID_EVENT", "app_user_id が見つかりません");
   }
 
+  // RevenueCat の匿名 ID（$RCAnonymousID:...）は auth.users にマップできない。
+  // subscriptions.user_id は UUID + FK のため INSERT が必ず失敗し、非 2xx を返すと
+  // RevenueCat が再送し続ける。マップ不能なイベントは 200 で ACK してスキップする。
+  if (!isUuid(event.app_user_id)) {
+    console.warn(`revenuecat-webhook: app_user_id が UUID ではないためスキップ: ${event.type}`);
+    return new Response(JSON.stringify({ ok: true, skipped: "unmappable_app_user_id" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   // ===== subscriptions 更新（Phase 2 で本実装） =====
   const service = createServiceClient();
 
   const isActiveEvent = ["INITIAL_PURCHASE", "RENEWAL", "PRODUCT_CHANGE", "UNCANCELLATION"]
     .includes(event.type);
-  const isCancelEvent = ["CANCELLATION", "EXPIRATION", "BILLING_ISSUE"].includes(event.type);
+  // CANCELLATION は「自動更新の停止」であり、エンタイトルメントは expires_at まで有効。
+  // BILLING_ISSUE も同様に即時失効ではない（失効時は別途 EXPIRATION が届く）。
+  // 即時に free へ落とすのは EXPIRATION のみとする。期限判定は getPlan 側の
+  // expires_at 比較でも二重に守られる。
+  const isCancelEvent = event.type === "EXPIRATION";
 
   if (isActiveEvent) {
     const expiresAt = event.expiration_at_ms
@@ -89,6 +104,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
     headers: { "Content-Type": "application/json" },
   });
 });
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isUuid(s: string): boolean {
+  return UUID_RE.test(s);
+}
 
 function jsonError(status: number, code: string, message: string): Response {
   return new Response(
