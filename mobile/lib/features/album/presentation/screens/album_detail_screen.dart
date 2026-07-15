@@ -90,11 +90,13 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(albumDetailProvider(widget.albumId));
 
-    // 削除完了で戻る
+    // 削除完了で一覧へ戻る。
+    // pop() だと「編集画面から削除」時に最上位の編集画面だけが閉じ、
+    // 削除済みアルバムの詳細画面に取り残されるため go で一覧まで戻す。
     ref.listen<AlbumDetailState>(albumDetailProvider(widget.albumId),
         (prev, next) {
       if (next is AlbumDetailLoaded && next.deleted) {
-        context.pop();
+        context.go('/albums');
       }
     });
 
