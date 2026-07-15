@@ -28,6 +28,7 @@ import {
   normalizeTagQuery,
   positiveIntError,
   resolvePhotosRoute,
+  storagePathError,
 } from "./validation.ts";
 
 const LIST_COLUMNS =
@@ -135,11 +136,13 @@ async function listPhotos(
   query = query.order(orderColumn, { ascending: false }).limit(limit);
 
   if (before) {
-    const date = new Date(before);
-    if (isNaN(date.getTime())) {
+    if (isNaN(new Date(before).getTime())) {
       return jsonError(400, "INVALID_QUERY", "before は ISO8601 形式で指定してください");
     }
-    query = query.lt(orderColumn, date.toISOString());
+    // next_before は Postgres の timestamptz（マイクロ秒精度）をそのまま返している。
+    // Date 経由で再整形するとミリ秒に切り捨てられ、境界の行を取りこぼすため、
+    // 形式検証のみ行い受信文字列をそのまま比較に使う。
+    query = query.lt(orderColumn, before);
   }
 
   const { data, error } = await query;
@@ -219,6 +222,12 @@ async function createPhoto(
 ): Promise<Response> {
   if (!body.storage_path || typeof body.storage_path !== "string") {
     return jsonError(400, "INVALID_REQUEST", "storage_path は必須です");
+  }
+  const pathError = storagePathError("storage_path", body.storage_path, userId);
+  if (pathError) return jsonError(400, "INVALID_REQUEST", pathError);
+  if (body.thumbnail_path != null) {
+    const thumbError = storagePathError("thumbnail_path", body.thumbnail_path, userId);
+    if (thumbError) return jsonError(400, "INVALID_REQUEST", thumbError);
   }
 
   const insertRow = {

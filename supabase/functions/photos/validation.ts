@@ -85,3 +85,24 @@ export function positiveIntError(name: string, value: unknown): string | null {
   }
   return null;
 }
+
+export const MAX_STORAGE_PATH_LENGTH = 1024;
+
+// Storage パスは本人のフォルダ（{userId}/...）配下のみ許可する。
+// 他ユーザーのパスを登録できると、物理削除・cleanup（service_role で Storage RLS を
+// バイパスする）経由で他人の実ファイルを消せてしまう。
+export function storagePathError(field: string, value: unknown, userId: string): string | null {
+  if (typeof value !== "string" || value.length === 0) {
+    return `${field} は空でない文字列で指定してください`;
+  }
+  if (value.length > MAX_STORAGE_PATH_LENGTH) {
+    return `${field} は ${MAX_STORAGE_PATH_LENGTH} 文字以内で指定してください`;
+  }
+  if (value.includes("..") || value.includes("//") || value.includes("\\")) {
+    return `${field} に不正なパスが含まれます`;
+  }
+  if (!value.startsWith(`${userId}/`)) {
+    return `${field} は自分のフォルダ配下のパスのみ指定できます`;
+  }
+  return null;
+}
