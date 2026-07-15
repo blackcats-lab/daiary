@@ -62,16 +62,32 @@ class PhotoListNotifier extends _$PhotoListNotifier {
         limit: _pageSize,
       );
       final additional = await _buildViews(repo, page.items);
+      // await 中に楽観更新（削除・お気に入り）や refresh が入っている可能性があるため、
+      // 取得前のスナップショットではなく最新 state に対して追記する。
+      // loadingMore が畳まれていたら refresh で一覧が置き換わっているので破棄する。
+      final latest = state;
+      if (latest is! PhotoListLoaded || !latest.loadingMore) return;
+      final existingIds = {for (final v in latest.items) v.item.id};
       state = PhotoListState.loaded(
-        items: [...current.items, ...additional],
+        items: [
+          ...latest.items,
+          ...additional.where((v) => !existingIds.contains(v.item.id)),
+        ],
         nextBefore: page.nextBefore,
       );
     } on PhotoFailure {
       // 追加読み込み失敗は loaded を維持して loadingMore を畳む。
       // 全画面エラーにすると既存表示が消えてしまうため。
-      state = current.copyWith(loadingMore: false);
+      _collapseLoadingMore();
     } catch (_) {
-      state = current.copyWith(loadingMore: false);
+      _collapseLoadingMore();
+    }
+  }
+
+  void _collapseLoadingMore() {
+    final latest = state;
+    if (latest is PhotoListLoaded && latest.loadingMore) {
+      state = latest.copyWith(loadingMore: false);
     }
   }
 

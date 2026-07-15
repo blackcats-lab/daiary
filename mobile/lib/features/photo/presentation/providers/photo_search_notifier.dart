@@ -17,11 +17,16 @@ part 'photo_search_notifier.g.dart';
 class PhotoSearchNotifier extends _$PhotoSearchNotifier {
   static const int _pageSize = 30;
 
+  /// applyFilter の世代カウンタ。連打時に古いレスポンスが新しいフィルタの
+  /// 結果を上書きしないよう、await 後に世代が進んでいたら結果を破棄する。
+  int _requestSeq = 0;
+
   @override
   PhotoSearchState build() => const PhotoSearchState.idle();
 
   /// フィルタを適用して検索する。空フィルタなら idle に戻す。
   Future<void> applyFilter(PhotoFilter filter) async {
+    final seq = ++_requestSeq;
     if (filter.isEmpty) {
       state = const PhotoSearchState.idle();
       return;
@@ -35,14 +40,17 @@ class PhotoSearchNotifier extends _$PhotoSearchNotifier {
         favoriteOnly: filter.favoriteOnly,
       );
       final views = await _buildViews(repo, page.items);
+      if (seq != _requestSeq) return; // 後続のフィルタ操作が優先
       state = PhotoSearchState.loaded(
         filter: filter,
         items: views,
         nextBefore: page.nextBefore,
       );
     } on PhotoFailure catch (f) {
+      if (seq != _requestSeq) return;
       state = PhotoSearchState.error(filter: filter, failure: f);
     } catch (e) {
+      if (seq != _requestSeq) return;
       state = PhotoSearchState.error(
         filter: filter,
         failure: PhotoFailure('unknown', '予期せぬエラーが発生しました: $e'),
@@ -51,7 +59,10 @@ class PhotoSearchNotifier extends _$PhotoSearchNotifier {
   }
 
   /// 検索を解除してフィード表示に戻る。
-  void clear() => state = const PhotoSearchState.idle();
+  void clear() {
+    _requestSeq++; // 実行中の applyFilter の結果を無効化する
+    state = const PhotoSearchState.idle();
+  }
 
   Future<void> loadMore() async {
     final current = state;
@@ -68,13 +79,27 @@ class PhotoSearchNotifier extends _$PhotoSearchNotifier {
         favoriteOnly: current.filter.favoriteOnly,
       );
       final additional = await _buildViews(repo, page.items);
+      // await 中の楽観更新・フィルタ変更を尊重して最新 state に追記する
+      final latest = state;
+      if (latest is! PhotoSearchLoaded ||
+          !latest.loadingMore ||
+          latest.filter != current.filter) {
+        return;
+      }
+      final existingIds = {for (final v in latest.items) v.item.id};
       state = PhotoSearchState.loaded(
-        filter: current.filter,
-        items: [...current.items, ...additional],
+        filter: latest.filter,
+        items: [
+          ...latest.items,
+          ...additional.where((v) => !existingIds.contains(v.item.id)),
+        ],
         nextBefore: page.nextBefore,
       );
     } catch (_) {
-      state = current.copyWith(loadingMore: false);
+      final latest = state;
+      if (latest is PhotoSearchLoaded && latest.loadingMore) {
+        state = latest.copyWith(loadingMore: false);
+      }
     }
   }
 
