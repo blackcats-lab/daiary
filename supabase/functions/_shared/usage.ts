@@ -31,8 +31,10 @@ export async function getPlan(client: SupabaseClient, userId: string): Promise<P
   if (!data) return "free";
 
   if (data.plan === "premium") {
-    const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
-    if (expiresAt > Date.now()) return "premium";
+    // expires_at が NULL の premium は無期限（非失効型プロダクト）として扱う。
+    // NULL を期限切れ扱いにすると、期限情報の無い課金イベントで premium 判定が壊れる。
+    if (data.expires_at === null) return "premium";
+    if (new Date(data.expires_at).getTime() > Date.now()) return "premium";
   }
   return "free";
 }
@@ -67,19 +69,36 @@ export async function loadUsageContext(
 }
 
 /**
- * increment_usage RPC を呼ぶ。AI 生成成功時のみ呼び出すこと。
- * 戻り値は更新後の当日カウント。
+ * try_increment_usage RPC（migration 010）を呼ぶ。
+ * 上限未満であればアトミックに count を +1 し、更新後の当日カウントを返す。
+ * 上限に達していて加算できなかった場合は null を返す。
+ * チェックと加算を 1 つの SQL 文で行うため、並列リクエストでも上限をすり抜けない。
  */
-export async function incrementUsage(
+export async function tryIncrementUsage(
   client: SupabaseClient,
   userId: string,
-): Promise<number> {
-  const { data, error } = await client.rpc("increment_usage", { p_user_id: userId });
+  limit: number,
+): Promise<number | null> {
+  const { data, error } = await client.rpc("try_increment_usage", {
+    p_user_id: userId,
+    p_limit: limit,
+  });
   if (error) {
-    console.error("incrementUsage error:", error);
+    console.error("tryIncrementUsage error:", error);
     throw error;
   }
-  return data as number;
+  const count = data as number;
+  return count < 0 ? null : count;
+}
+
+/**
+ * decrement_usage RPC（migration 010）を呼ぶ。
+ * AI 呼び出しが失敗したとき、事前に確保した利用枠を返却する（成功時のみカウントの原則）。
+ * 返却の失敗は致命傷ではないためログのみ残す。
+ */
+export async function refundUsage(client: SupabaseClient, userId: string): Promise<void> {
+  const { error } = await client.rpc("decrement_usage", { p_user_id: userId });
+  if (error) console.error("refundUsage error:", error);
 }
 
 /** usage_logs に 1 行挿入 */
