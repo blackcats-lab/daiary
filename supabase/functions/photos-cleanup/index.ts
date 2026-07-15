@@ -13,7 +13,13 @@
 // ============================================================================
 
 import { createServiceClient } from "../_shared/auth.ts";
-import { BATCH_SIZE, collectStoragePaths, expirationCutoff, MAX_BATCHES } from "./cleanup.ts";
+import {
+  BATCH_SIZE,
+  collectStoragePaths,
+  expirationCutoff,
+  MAX_BATCHES,
+  MAX_TRACKED_FAILURES,
+} from "./cleanup.ts";
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
@@ -34,16 +40,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   let deleted = 0;
   let skipped = 0;
+  // 削除に失敗した写真の ID。同一実行内で再選択・再カウントしないよう除外する。
+  const failedIds: string[] = [];
 
   try {
     for (let batch = 0; batch < MAX_BATCHES; batch++) {
+      if (failedIds.length > MAX_TRACKED_FAILURES) {
+        console.error(`photos-cleanup: 失敗件数が ${MAX_TRACKED_FAILURES} を超えたため打ち切り`);
+        break;
+      }
+
       // deleted_at < cutoff は NULL（未削除）を含まない
-      const { data, error } = await service
+      let query = service
         .from("photos")
         .select("id, storage_path, thumbnail_path")
         .lt("deleted_at", cutoff)
         .order("deleted_at", { ascending: true })
         .limit(BATCH_SIZE);
+      if (failedIds.length > 0) {
+        query = query.not("id", "in", `(${failedIds.join(",")})`);
+      }
+      const { data, error } = await query;
 
       if (error) {
         console.error("photos-cleanup select error:", error);
@@ -61,6 +78,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           if (storageError) {
             console.error(`photos-cleanup storage error (photo ${row.id}):`, storageError);
             skipped++;
+            failedIds.push(row.id);
             continue;
           }
         }
@@ -69,6 +87,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         if (deleteError) {
           console.error(`photos-cleanup delete error (photo ${row.id}):`, deleteError);
           skipped++;
+          failedIds.push(row.id);
           continue;
         }
 

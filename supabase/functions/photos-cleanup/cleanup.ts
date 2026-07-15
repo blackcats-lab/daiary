@@ -5,6 +5,9 @@
 export const RETENTION_DAYS = 30;
 export const BATCH_SIZE = 100;
 export const MAX_BATCHES = 50;
+// 同一実行内で追跡する削除失敗 ID の上限。これを超えたら次回実行に委ねて打ち切る
+// （PostgREST の not-in フィルタが URL 長制限に達するのを防ぐ）。
+export const MAX_TRACKED_FAILURES = 300;
 
 /** 保持期限のカットオフ日時（これより古い deleted_at の写真が物理削除対象）を返す。 */
 export function expirationCutoff(now: Date, retentionDays: number = RETENTION_DAYS): string {
