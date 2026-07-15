@@ -62,7 +62,17 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (ok != true) return;
-    await ref.read(authProvider.notifier).signOut();
-    // 遷移は router の redirect が処理する
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(authProvider.notifier).signOut();
+      // 遷移は router の redirect が処理する
+    } catch (_) {
+      // オフライン等で signOut が失敗すると未処理例外になり、
+      // ユーザーには何も起きていないように見えるためフィードバックを出す
+      messenger.showSnackBar(
+        const SnackBar(content: Text('ログアウトに失敗しました。通信環境を確認してください')),
+      );
+    }
   }
 }

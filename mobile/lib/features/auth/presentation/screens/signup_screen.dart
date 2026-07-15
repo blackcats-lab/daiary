@@ -40,10 +40,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     }
     setState(() => _submitting = true);
     try {
-      await ref.read(authProvider.notifier).signUp(
+      final loggedIn = await ref.read(authProvider.notifier).signUp(
             email: _emailCtrl.text.trim(),
             password: _passwordCtrl.text,
           );
+      if (!mounted) return;
+      if (!loggedIn) {
+        // メール確認が必要な環境ではセッションが発行されない。
+        // ログイン画面へ誘導する（/home 遷移は router が auth 状態で防ぐ）。
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('確認メールを送信しました。メール内のリンクを開いてからログインしてください'),
+          ),
+        );
+        context.go('/login');
+      }
     } on AuthFailure catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.message);

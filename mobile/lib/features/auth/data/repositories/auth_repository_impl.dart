@@ -24,7 +24,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AuthUser> signUp(
+  Future<AuthUser?> signUp(
       {required String email, required String password}) async {
     try {
       final res = await _dataSource.signUp(email: email, password: password);
@@ -32,7 +32,13 @@ class AuthRepositoryImpl implements AuthRepository {
       if (user == null) {
         throw AuthFailure('unknown', 'サインアップに失敗しました（user が null）');
       }
+      // メール確認が有効な環境（本番デフォルト）では session が null で返る。
+      // この状態を「ログイン済み」として扱うと、JWT が無いまま /home に遷移して
+      // 以降の API 呼び出しが全て 401 になるため、未ログイン（null）として返す。
+      if (res.session == null) return null;
       return _toEntity(user)!;
+    } on AuthFailure {
+      rethrow;
     } on AuthException catch (e) {
       throw _mapException(e);
     } catch (_) {
