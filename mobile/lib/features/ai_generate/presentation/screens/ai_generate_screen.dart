@@ -431,8 +431,13 @@ class _FailureBlock extends StatelessWidget {
   final Widget? partialView;
   final VoidCallback onRetry;
 
+  // unknown（ファイル読み込み失敗等の一時的なローカルエラー）もリトライ可能にする。
+  // リトライ不可なのは rate_limited / image_too_large / unauthenticated など
+  // 再実行しても結果が変わらないものだけ。
   bool get _canRetry =>
-      failure.code == 'network' || failure.code == 'service_failed';
+      failure.code == 'network' ||
+      failure.code == 'service_failed' ||
+      failure.code == 'unknown';
 
   String get _message {
     if (failure.code == 'rate_limited') {
