@@ -113,7 +113,7 @@ async function listAlbums(
     .from("albums")
     .select(
       `id, name, cover_photo_id, is_public, share_token, created_at, updated_at,
-       cover_photo:photos!albums_cover_photo_id_fkey(thumbnail_path),
+       cover_photo:photos!albums_cover_photo_id_fkey(thumbnail_path, deleted_at),
        album_photos(count)`,
     )
     .eq("user_id", userId)
@@ -124,17 +124,44 @@ async function listAlbums(
     return jsonError(500, "DB_ERROR", "アルバム一覧の取得に失敗しました");
   }
 
-  const albums = (data ?? []).map((row: Record<string, unknown>) => {
-    const cover = row.cover_photo as { thumbnail_path?: string | null } | null;
+  const rows = (data ?? []) as Record<string, unknown>[];
+
+  // album_photos(count) は中間テーブルの行数なので、ゴミ箱内（論理削除済み）の写真も
+  // 含んでしまう。詳細画面（GET /albums/:id）は論理削除済みを除外して返すため、
+  // 一覧でも論理削除済み分を差し引いて件数を一致させる。
+  const trashedCounts = new Map<string, number>();
+  const albumIds = rows.map((row) => row.id as string);
+  if (albumIds.length > 0) {
+    const { data: trashedRows, error: trashedError } = await service
+      .from("album_photos")
+      .select("album_id, photos!inner(id)")
+      .in("album_id", albumIds)
+      .not("photos.deleted_at", "is", null);
+    if (trashedError) {
+      console.error("listAlbums trashed count error:", trashedError);
+      return jsonError(500, "DB_ERROR", "アルバム一覧の取得に失敗しました");
+    }
+    for (const row of (trashedRows ?? []) as Array<{ album_id: string }>) {
+      trashedCounts.set(row.album_id, (trashedCounts.get(row.album_id) ?? 0) + 1);
+    }
+  }
+
+  const albums = rows.map((row: Record<string, unknown>) => {
+    const cover = row.cover_photo as
+      | { thumbnail_path?: string | null; deleted_at?: string | null }
+      | null;
     const counts = row.album_photos as Array<{ count: number }> | null;
+    const totalCount = counts?.[0]?.count ?? 0;
+    const trashed = trashedCounts.get(row.id as string) ?? 0;
     return {
       id: row.id,
       name: row.name,
       cover_photo_id: row.cover_photo_id,
-      cover_thumbnail_path: cover?.thumbnail_path ?? null,
+      // ゴミ箱内の写真はカバーとして表示しない
+      cover_thumbnail_path: cover && cover.deleted_at == null ? cover.thumbnail_path ?? null : null,
       is_public: row.is_public,
       share_token: row.share_token,
-      photo_count: counts?.[0]?.count ?? 0,
+      photo_count: Math.max(totalCount - trashed, 0),
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -445,13 +472,30 @@ async function addPhotosToAlbum(
     sort_order: baseOrder + i,
   }));
 
-  const { error: insertError } = await service.from("album_photos").insert(rows);
+  // 事前の existingSet チェックと INSERT の間に並行リクエストが同じ写真を追加すると
+  // PK 違反で 500 になるため、重複は upsert(ignoreDuplicates) で無視して吸収する。
+  const { data: insertedRows, error: insertError } = await service
+    .from("album_photos")
+    .upsert(rows, { onConflict: "album_id,photo_id", ignoreDuplicates: true })
+    .select("photo_id");
   if (insertError) {
     console.error("addPhotosToAlbum insert error:", insertError);
     return jsonError(500, "DB_ERROR", "アルバムへの追加に失敗しました");
   }
 
-  return jsonOk({ added: insertable, skipped });
+  const insertedSet = new Set(
+    ((insertedRows ?? []) as Array<{ photo_id: string }>).map((r) => r.photo_id),
+  );
+  const added: string[] = [];
+  for (const pid of insertable) {
+    if (insertedSet.has(pid)) {
+      added.push(pid);
+    } else {
+      skipped.push({ photo_id: pid, reason: "already_in_album" });
+    }
+  }
+
+  return jsonOk({ added, skipped });
 }
 
 async function removePhotosFromAlbum(

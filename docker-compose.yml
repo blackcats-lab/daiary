@@ -4,6 +4,10 @@
 #
 # ここでは Postgres のみを単体起動できるサンプルを定義する。
 # Edge Functions / Studio / Auth / Storage を含めた完全構成は Supabase CLI を使うこと。
+#
+# 注意: supabase/migrations は auth.users や storage.objects など Supabase 専用
+# スキーマを参照するため、素の Postgres には適用できない（initdb にマウントすると
+# 初回起動が必ず失敗する）。マイグレーションの検証は `supabase db reset` で行うこと。
 
 services:
   postgres:
@@ -18,7 +22,6 @@ services:
       - "54322:5432"
     volumes:
       - daiary_pg_data:/var/lib/postgresql/data
-      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
 
 volumes:
   daiary_pg_data:

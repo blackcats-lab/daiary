@@ -68,7 +68,13 @@ class PhotoUploadRepository {
               ),
         ]);
       } on StorageException catch (e) {
+        // 並列アップロードは片方だけ成功している可能性があるため、
+        // 成功した方を残さないよう両パスを補償削除してから失敗を伝える
+        await _compensateRemove([originalPath, thumbPath]);
         throw PhotoFailure('upload_failed', e.message);
+      } catch (_) {
+        await _compensateRemove([originalPath, thumbPath]);
+        rethrow;
       }
 
       final body = <String, dynamic>{
@@ -86,6 +92,10 @@ class PhotoUploadRepository {
       } on FunctionException catch (e) {
         await _compensateRemove([originalPath, thumbPath]);
         throw PhotoFailure('metadata_failed', 'メタデータの作成に失敗しました (${e.status})');
+      } catch (_) {
+        // SocketException 等の通信断でもアップロード済みファイルを孤児にしない
+        await _compensateRemove([originalPath, thumbPath]);
+        rethrow;
       }
 
       if (response.status != 201) {

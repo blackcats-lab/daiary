@@ -18,13 +18,34 @@ class CameraScreen extends ConsumerStatefulWidget {
   ConsumerState<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends ConsumerState<CameraScreen> {
+class _CameraScreenState extends ConsumerState<CameraScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(cameraControllerProvider.notifier).initialize();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// バックグラウンド移行でカメラを解放し、復帰時に再初期化する。
+  /// 解放しないと復帰後にプレビューが固まり、バックグラウンド中も
+  /// カメラを占有し続けてしまう。
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final notifier = ref.read(cameraControllerProvider.notifier);
+    if (state == AppLifecycleState.inactive) {
+      notifier.suspend();
+    } else if (state == AppLifecycleState.resumed) {
+      notifier.initialize();
+    }
   }
 
   Future<void> _onShutter() async {

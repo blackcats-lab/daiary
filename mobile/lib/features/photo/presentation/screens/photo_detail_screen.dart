@@ -55,11 +55,14 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         ),
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('共有に失敗しました: $e')),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('共有に失敗しました: $e')),
+        );
+      }
     } finally {
-      notifier.setSharing(false);
+      // 画面 pop 済みなら autoDispose された notifier に触らない
+      if (mounted) notifier.setSharing(false);
     }
   }
 
@@ -86,12 +89,15 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
       if (!mounted) return;
       await ref.read(photoDetailProvider(widget.photoId).notifier).load();
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('画像の取得に失敗しました: $e')),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('画像の取得に失敗しました: $e')),
+        );
+      }
     } finally {
-      // 画面が disposed されている可能性があるため state 直接触らない
-      notifier.setPreparingAi(false);
+      // 画面 pop 済みなら autoDispose された notifier に触らない
+      // （setPreparingAi は内部で state を読むため dispose 後の呼び出しは StateError になる）
+      if (mounted) notifier.setPreparingAi(false);
     }
   }
 
@@ -156,9 +162,11 @@ class _PhotoDetailScreenState extends ConsumerState<PhotoDetailScreen> {
         await notifier.reloadAfterEdit();
       }
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('画像の取得に失敗しました: $e')));
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('画像の取得に失敗しました: $e')));
+      }
     } finally {
-      notifier.setPreparingAi(false);
+      if (mounted) notifier.setPreparingAi(false);
     }
   }
 

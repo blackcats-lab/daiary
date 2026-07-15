@@ -144,6 +144,10 @@ class PhotoListRepository {
       throw PhotoFailure('update_failed', 'お気に入りの更新に失敗しました (${e.status})');
     } on SocketException catch (e) {
       throw PhotoFailure('network', 'ネットワークに接続できませんでした: ${e.message}');
+    } catch (e) {
+      // http.ClientException 等 SocketException 以外の通信例外もここで吸収する。
+      // 素通しすると画面側の on PhotoFailure に掛からず未処理例外になる。
+      throw PhotoFailure('unknown', 'お気に入りの更新中にエラーが発生しました: $e');
     }
 
     if (response.status != 200) {
@@ -190,6 +194,8 @@ class PhotoListRepository {
       throw PhotoFailure('update_failed', '更新に失敗しました (${e.status})');
     } on SocketException catch (e) {
       throw PhotoFailure('network', 'ネットワークに接続できませんでした: ${e.message}');
+    } catch (e) {
+      throw PhotoFailure('unknown', '更新中にエラーが発生しました: $e');
     }
 
     if (response.status != 200) {
@@ -223,6 +229,8 @@ class PhotoListRepository {
       throw PhotoFailure('delete_failed', '削除に失敗しました (${e.status})');
     } on SocketException catch (e) {
       throw PhotoFailure('network', 'ネットワークに接続できませんでした: ${e.message}');
+    } catch (e) {
+      throw PhotoFailure('unknown', '削除中にエラーが発生しました: $e');
     }
 
     if (response.status != 200) {

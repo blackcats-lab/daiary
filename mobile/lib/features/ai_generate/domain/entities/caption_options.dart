@@ -39,7 +39,7 @@ enum CaptionLength {
       };
 
   /// プロンプトに含めるヒント文字列。
-  /// Edge Function 側プロンプトへの組込は後続 PR でのスコープ。
+  /// Edge Function 側（ai-generate）の許容リストと一致させること。
   String get promptHint => switch (this) {
         CaptionLength.short => '40〜70字',
         CaptionLength.medium => '80〜140字',

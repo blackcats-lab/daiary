@@ -9,6 +9,7 @@ import {
   MAX_LIMIT,
   normalizeTagQuery,
   positiveIntError,
+  storagePathError,
 } from "./validation.ts";
 
 // --- normalizeTagQuery -------------------------------------------------------
@@ -106,4 +107,50 @@ Deno.test("positiveIntError: 0・負数・小数・文字列はエラー", () =>
   assertEquals(typeof positiveIntError("width", -1), "string");
   assertEquals(typeof positiveIntError("width", 1.5), "string");
   assertEquals(typeof positiveIntError("width", "100"), "string");
+});
+
+// --- storagePathError -----------------------------------------------------------
+
+const USER_ID = "123e4567-e89b-12d3-a456-426614174000";
+
+Deno.test("storagePathError: 自分のフォルダ配下のパスは OK", () => {
+  assertEquals(storagePathError("storage_path", `${USER_ID}/photo.jpg`, USER_ID), null);
+  assertEquals(storagePathError("thumbnail_path", `${USER_ID}/thumb_photo.jpg`, USER_ID), null);
+});
+
+Deno.test("storagePathError: 他ユーザーのフォルダ配下は拒否", () => {
+  const other = "999e4567-e89b-12d3-a456-426614174999";
+  assertEquals(typeof storagePathError("storage_path", `${other}/photo.jpg`, USER_ID), "string");
+});
+
+Deno.test("storagePathError: プレフィックスだけ一致するフォルダ名は拒否", () => {
+  // "{userId}abc/..." のような similar-prefix を "/" 区切りで弾けること
+  assertEquals(
+    typeof storagePathError("storage_path", `${USER_ID}abc/photo.jpg`, USER_ID),
+    "string",
+  );
+});
+
+Deno.test("storagePathError: パストラバーサル・不正区切りは拒否", () => {
+  assertEquals(
+    typeof storagePathError("storage_path", `${USER_ID}/../other/photo.jpg`, USER_ID),
+    "string",
+  );
+  assertEquals(
+    typeof storagePathError("storage_path", `${USER_ID}//photo.jpg`, USER_ID),
+    "string",
+  );
+  assertEquals(
+    typeof storagePathError("storage_path", `${USER_ID}\\photo.jpg`, USER_ID),
+    "string",
+  );
+});
+
+Deno.test("storagePathError: 空・非文字列・過長は拒否", () => {
+  assertEquals(typeof storagePathError("storage_path", "", USER_ID), "string");
+  assertEquals(typeof storagePathError("storage_path", 123, USER_ID), "string");
+  assertEquals(
+    typeof storagePathError("storage_path", `${USER_ID}/${"a".repeat(1024)}.jpg`, USER_ID),
+    "string",
+  );
 });

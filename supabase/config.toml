@@ -85,6 +85,12 @@ inspector_port = 8083
 [functions.photos-cleanup]
 verify_jwt = false
 
+# revenuecat-webhook は RevenueCat が送る固定 Authorization ヘッダーで認証する。
+# Supabase JWT ではないため、ゲートウェイの JWT 検証を無効にしないと全 Webhook が
+# 401 で弾かれ、サブスク状態が同期されない。
+[functions.revenuecat-webhook]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

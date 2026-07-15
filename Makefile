@@ -84,7 +84,7 @@ db-diff:
 
 # ===== Edge Functions =====
 functions-serve:
-	supabase functions serve --env-file supabase/.env.local
+	supabase functions serve --env-file supabase/functions/.env.local
 
 functions-deploy:
 	supabase functions deploy

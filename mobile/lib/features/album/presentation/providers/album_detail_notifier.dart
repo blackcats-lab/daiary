@@ -77,24 +77,35 @@ class AlbumDetailNotifier extends _$AlbumDetailNotifier {
       final updated = await ref
           .read(albumRepositoryProvider)
           .update(albumId, name: name.trim());
-      // 詳細側を最新化（cover_thumbnail_path / photo_count は維持）
-      final newSummary = s.detail.album.copyWith(
-        name: updated.name,
-        updatedAt: updated.updatedAt,
-      );
-      state = s.copyWith(
-        updating: false,
-        detail: s.detail.copyWith(album: newSummary),
-      );
+      // await 中に state が変わっている可能性があるため、取得前のスナップショット
+      // ではなく最新 state に反映する（cover_thumbnail_path / photo_count は維持）
+      final latest = state;
+      if (latest is AlbumDetailLoaded) {
+        final newSummary = latest.detail.album.copyWith(
+          name: updated.name,
+          updatedAt: updated.updatedAt,
+        );
+        state = latest.copyWith(
+          updating: false,
+          detail: latest.detail.copyWith(album: newSummary),
+        );
+      }
       ref
           .read(albumListProvider.notifier)
           .updateNameOptimistically(albumId, updated.name);
     } on AlbumFailure catch (_) {
-      state = s.copyWith(updating: false);
+      _collapseUpdating();
       rethrow;
     } catch (_) {
-      state = s.copyWith(updating: false);
+      _collapseUpdating();
       rethrow;
+    }
+  }
+
+  void _collapseUpdating() {
+    final latest = state;
+    if (latest is AlbumDetailLoaded && latest.updating) {
+      state = latest.copyWith(updating: false);
     }
   }
 
@@ -145,6 +156,8 @@ class AlbumDetailNotifier extends _$AlbumDetailNotifier {
           album: s.detail.album.copyWith(photoCount: newPhotos.length),
         ),
       );
+      // アルバム一覧（keepAlive）の件数・カバーも最新化する
+      ref.read(albumListProvider.notifier).refresh();
     } on AlbumFailure catch (_) {
       state = s.copyWith(removingPhotos: false);
       rethrow;
@@ -155,5 +168,9 @@ class AlbumDetailNotifier extends _$AlbumDetailNotifier {
   }
 
   /// 写真追加 picker から戻ってきた直後に呼ぶ。
-  Future<void> onPhotosAdded() => refresh();
+  Future<void> onPhotosAdded() async {
+    await refresh();
+    // アルバム一覧（keepAlive）は自動更新されないため、件数・カバーを最新化する
+    ref.read(albumListProvider.notifier).refresh();
+  }
 }

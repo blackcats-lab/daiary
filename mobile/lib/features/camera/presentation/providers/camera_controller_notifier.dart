@@ -35,6 +35,10 @@ class CameraControllerNotifier extends _$CameraControllerNotifier {
 
   Future<void> initialize() async {
     if (_disposed) return;
+    // 初期化中・稼働中の二重初期化を防ぐ（resumed イベントは権限ダイアログ復帰でも
+    // 飛んでくるため、suspend されていない限り再初期化しない）
+    final current = state;
+    if (current is CameraInitializing || current is CameraReady) return;
     state = const CameraState.initializing();
     final perm = await ref.read(permissionServiceProvider).requestCamera();
     if (_disposed) return;
@@ -121,13 +125,16 @@ class CameraControllerNotifier extends _$CameraControllerNotifier {
         return;
       }
       _controller = newController;
-      await oldController.dispose();
+      // UI が新しい controller を参照してから旧 controller を解放する。
+      // 先に dispose すると、次のフレームまで disposed な controller を
+      // CameraPreview が描画してしまう。
       state = CameraState.ready(
         controller: newController,
         lens: next.lensDirection,
         flash: FlashMode.off,
         cameras: current.cameras,
       );
+      await oldController.dispose();
     } catch (e) {
       if (_disposed) return;
       state = CameraState.error(
@@ -151,6 +158,18 @@ class CameraControllerNotifier extends _$CameraControllerNotifier {
     } catch (_) {
       // フラッシュ未対応端末は静かに無視
     }
+  }
+
+  /// アプリのバックグラウンド移行時に呼ぶ。camera プラグインは
+  /// inactive で controller を解放し、resumed で再初期化するのが推奨ハンドリング。
+  /// 解放しないと復帰後にプレビューが固まる・端末によってはクラッシュする。
+  Future<void> suspend() async {
+    final current = state;
+    if (current is! CameraReady) return;
+    final controller = current.controller;
+    _controller = null;
+    state = const CameraState.initial();
+    await controller.dispose();
   }
 
   Future<void> openAppSettingsPage() async {
