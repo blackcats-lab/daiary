@@ -41,14 +41,16 @@ jobs:
         # 実体ファイルが必要（無いと asset_does_not_exist warning で fail）
         run: cp .env.example .env
 
+      - name: Verify formatting
+        # 生成ファイルは format 検証から除外するため、codegen 前（コミット済みソースのみが
+        # 存在する状態）で実行する。codegen 後だと riverpod_generator / json_serializable の
+        # *.g.dart が対象に含まれ、SDK と生成ツールのフォーマッタ差分で CI が落ちる。
+        run: dart format --output=none --set-exit-if-changed lib test
+
       - name: Code generation
         # freezed / riverpod_generator / json_serializable の生成ファイルは .gitignore 対象
         # CI では毎回生成する
         run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Verify formatting
-        # 生成ファイルは format 検証から除外（生成ツール側のスタイルに従う）
-        run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze
         run: flutter analyze --no-fatal-infos

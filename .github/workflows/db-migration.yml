@@ -30,7 +30,9 @@ jobs:
           version: latest
 
       - name: Start local Supabase stack
-        run: supabase start --exclude=studio,inbucket,realtime,edge-runtime,imgproxy,pgadmin-schema-diff,migra,vector,logflare
+        # CLI v2 ではコンテナ名が変わっている（inbucket → mailpit。pgadmin-schema-diff /
+        # migra は廃止）。旧名を指定しても警告のみで無視され、除外が効かない。
+        run: supabase start --exclude=studio,mailpit,realtime,edge-runtime,imgproxy,vector,logflare
 
       - name: Reset DB (apply migrations + seed)
         run: supabase db reset
