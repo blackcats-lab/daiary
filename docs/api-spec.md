@@ -37,7 +37,8 @@
   "options": {
     "language": "ja",
     "style": "casual",
-    "count": 10
+    "count": 10,
+    "lengthHint": "80〜140字"
   }
 }
 ```
@@ -46,10 +47,14 @@
 | ----- | ---- | -------- | ----------- |
 | image | string (base64) | ✓ | 画像本体。Flutter 側で長辺 1024px / JPEG q80 まで前処理してから送る |
 | mimeType | string | ✓ | `image/jpeg` / `image/png` / `image/webp` |
-| taskType | string | ✓ | `hashtag` または `caption` |
-| options.language | string | - | 既定 `ja` |
-| options.style | string | - | 既定 `casual` |
-| options.count | int | - | hashtag 個数。既定 10 |
+| taskType | string | ✓ | `hashtag` または `caption`。それ以外は 400 INVALID_REQUEST |
+| options.language | string | - | `ja` / `en`。それ以外・未指定は `ja` |
+| options.style | string | - | `poetic` / `formal` / `casual` / `news` / `humor`。それ以外・未指定は `casual` |
+| options.count | int | - | hashtag 個数。1〜30 にクランプ。既定 10 |
+| options.lengthHint | string | - | caption 用の文章長ヒント。`40〜70字` / `80〜140字` / `150〜250字` のみ有効 |
+
+利用回数は AI 呼び出し前にアトミックに確保し（並列リクエストでも上限をすり抜けない）、
+AI 呼び出しが失敗した場合は返却する（成功時のみカウント）。
 
 #### Response 200
 
@@ -163,10 +168,11 @@
 }
 ```
 
-| field          | required | 備考                                  |
-| -------------- | -------- | ------------------------------------- |
-| `storage_path` | ✓        | 唯一の必須フィールド                  |
-| 他             | -        | 省略時は null / 空 (`{}` or `[]`)     |
+| field            | required | 備考                                                                     |
+| ---------------- | -------- | ------------------------------------------------------------------------ |
+| `storage_path`   | ✓        | `{自分のuser_id}/` 配下のパスのみ許可（違反時 400 INVALID_REQUEST）      |
+| `thumbnail_path` | -        | 指定時は `storage_path` と同じパス制約                                   |
+| 他               | -        | 省略時は null / 空 (`{}` or `[]`)                                        |
 
 レスポンス 201:
 
@@ -262,6 +268,9 @@
   ]
 }
 ```
+
+`photo_count` はゴミ箱内（論理削除済み）の写真を除いた件数（`GET /albums/:id` の
+photos 件数と一致する）。カバー写真がゴミ箱内にある場合、`cover_thumbnail_path` は null。
 
 ### GET /albums/:id
 
@@ -396,9 +405,13 @@ RevenueCat からのサブスク状態変更通知を受ける。
 
 | event.type | 対応 |
 | ---------- | ---- |
-| INITIAL_PURCHASE / RENEWAL / PRODUCT_CHANGE / UNCANCELLATION | `subscriptions.plan = premium`, `expires_at` 更新 |
-| CANCELLATION / EXPIRATION / BILLING_ISSUE | `subscriptions.plan = free`, `expires_at = null` |
+| INITIAL_PURCHASE / RENEWAL / PRODUCT_CHANGE / UNCANCELLATION | `subscriptions.plan = premium`, `expires_at` 更新（`expiration_at_ms` 無しは無期限 = NULL） |
+| EXPIRATION | `subscriptions.plan = free`, `expires_at = null` |
+| CANCELLATION / BILLING_ISSUE | 何もしない（自動更新停止・請求問題であり、エンタイトルメントは `expires_at` まで有効。失効時は別途 EXPIRATION が届く） |
 | その他 | スキップ（200 を返す） |
+
+`event.app_user_id` が UUID でない場合（RevenueCat 匿名 ID 等）は auth.users にマップ
+できないため、200 で ACK してスキップする（非 2xx を返すと RevenueCat が再送し続けるため）。
 
 レスポンス: `{ "ok": true }` または上記共通エラー形式。
 
